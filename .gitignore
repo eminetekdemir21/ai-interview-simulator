@@ -1,0 +1,17 @@
+# Ortam degiskenleri (API key burada, ASLA paylasma)
+.env
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+
+# Editor
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
