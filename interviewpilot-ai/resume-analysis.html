@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CV Analizi — InterviewPilot AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Manrope:wght@700;800&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+
+<link rel="stylesheet" href="assets/style.css">
+<style>
+
+  .upload-zone { border:2px dashed var(--border); border-radius:16px; padding:44px; text-align:center; cursor:pointer; transition:.15s; }
+  .upload-zone:hover { border-color:var(--indigo); background:var(--grad-brand-soft); }
+  .score-badge-lg { width:64px; height:64px; border-radius:50%; background:var(--grad-brand); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:20px; }
+  
+</style>
+</head>
+<body>
+<div class="app-shell">
+<aside class="sidebar">
+  <div class="brand" style="padding:10px 10px 18px;"><div class="brand-mark">IP</div>InterviewPilot</div>
+  <a class="side-link" href="dashboard.html"><span class="icon-box"><i data-lucide="layout-dashboard" style="width:17px"></i></span>Dashboard</a>
+  <a class="side-link" href="interview-setup.html"><span class="icon-box"><i data-lucide="play-circle" style="width:17px"></i></span>Yeni Mulakat</a>
+  <a class="side-link" href="history.html"><span class="icon-box"><i data-lucide="history" style="width:17px"></i></span>Gecmis</a>
+  <a class="side-link" href="analytics.html"><span class="icon-box"><i data-lucide="bar-chart-3" style="width:17px"></i></span>Analitik</a>
+  <a class="side-link" href="roadmap.html"><span class="icon-box"><i data-lucide="map" style="width:17px"></i></span>Yol Haritasi</a>
+  <div class="sidebar-section-label">Kariyer</div>
+  <a class="side-link active" href="resume-analysis.html"><span class="icon-box"><i data-lucide="file-search" style="width:17px"></i></span>CV Analizi</a>
+  <a class="side-link" href="job-match.html"><span class="icon-box"><i data-lucide="target" style="width:17px"></i></span>Is Uyumu</a>
+  <a class="side-link" href="career-coach.html"><span class="icon-box"><i data-lucide="compass" style="width:17px"></i></span>AI Kariyer Kocu</a>
+  <a class="side-link" href="portfolio.html"><span class="icon-box"><i data-lucide="github" style="width:17px"></i></span>Portfolyo</a>
+  <div class="sidebar-section-label">Topluluk</div>
+  <a class="side-link" href="leaderboard.html"><span class="icon-box"><i data-lucide="trophy" style="width:17px"></i></span>Liderlik Tablosu</a>
+  <a class="side-link" href="challenges.html"><span class="icon-box"><i data-lucide="swords" style="width:17px"></i></span>Gunluk Meydan Okuma</a>
+  <div class="sidebar-section-label">Hesap</div>
+  <a class="side-link" href="profile.html"><span class="icon-box"><i data-lucide="user" style="width:17px"></i></span>Profil</a>
+  <a class="side-link" href="admin.html"><span class="icon-box"><i data-lucide="shield" style="width:17px"></i></span>Admin Panel</a>
+</aside>
+  <div class="main-content">
+    <div class="topbar">
+      <div><div class="h4">CV Analizi</div><div class="faint" style="font-size:13px;">CV'ni yukle, AI aninda analiz etsin</div></div>
+      <div class="flex items-center gap-12">
+        <div class="switch theme-switch" onclick="toggleTheme()"></div>
+        
+      </div>
+    </div>
+    <div class="page-body">
+      <div class="grid" style="grid-template-columns:1fr 1.3fr; gap:20px;">
+        <div class="card fade-up">
+          <div class="upload-zone">
+            <i data-lucide="upload-cloud" style="width:36px; color:var(--indigo);"></i>
+            <p style="font-weight:700; margin-top:12px;">CV'ni surukle birak</p>
+            <p class="faint" style="font-size:12.5px; margin-top:4px;">PDF, DOCX — 10MB'a kadar</p>
+            <button class="btn btn-primary" style="margin-top:16px;">Dosya Sec</button>
+          </div>
+          <div class="flex items-center gap-12" style="margin-top:16px; padding:12px; background:var(--surface-2); border-radius:10px;">
+            <i data-lucide="file-text" style="width:20px; color:var(--indigo);"></i>
+            <div style="flex:1; font-size:13px; font-weight:600;">emine_tekdemir_cv.pdf</div>
+            <span class="badge badge-success">Analiz Edildi</span>
+          </div>
+        </div>
+        <div class="card fade-up delay-1">
+          <div class="flex items-center gap-16" style="margin-bottom:20px;">
+            <div class="score-badge-lg">84</div>
+            <div><div class="h4">CV Skoru: Iyi</div><p class="faint" style="font-size:13px;">ATS uyumlulugu ve icerik kalitesine gore</p></div>
+          </div>
+          <div style="font-size:13px; font-weight:700; color:var(--success); margin-bottom:8px;">Guclu Yonler</div>
+          <div class="checklist-item" style="display:flex; gap:8px; font-size:13.5px; padding:5px 0;"><i data-lucide="check-circle-2" style="width:16px; color:var(--success);"></i>Olculebilir basarilar var (%20 performans artisi vb.)</div>
+          <div class="checklist-item" style="display:flex; gap:8px; font-size:13.5px; padding:5px 0;"><i data-lucide="check-circle-2" style="width:16px; color:var(--success);"></i>Anahtar kelimeler is ilanlariyla uyumlu</div>
+          <div style="font-size:13px; font-weight:700; color:var(--warning); margin:14px 0 8px;">Iyilestirme Onerileri</div>
+          <div class="checklist-item" style="display:flex; gap:8px; font-size:13.5px; padding:5px 0;"><i data-lucide="alert-circle" style="width:16px; color:var(--warning);"></i>Ozet (summary) bolumu eksik</div>
+          <div class="checklist-item" style="display:flex; gap:8px; font-size:13.5px; padding:5px 0;"><i data-lucide="alert-circle" style="width:16px; color:var(--warning);"></i>Proje linklerini (GitHub) ekle</div>
+          <div class="checklist-item" style="display:flex; gap:8px; font-size:13.5px; padding:5px 0;"><i data-lucide="alert-circle" style="width:16px; color:var(--warning);"></i>Bazi bolumler cok uzun, 1 sayfaya sigdir</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="assets/app.js"></script>
+<script>
+  lucide.createIcons();
+
+</script>
+</body>
+</html>

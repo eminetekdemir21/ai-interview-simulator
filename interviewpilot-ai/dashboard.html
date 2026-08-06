@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — InterviewPilot AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Manrope:wght@700;800&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<link rel="stylesheet" href="assets/style.css">
+<style>
+  .kpi-grid { grid-template-columns: repeat(4, 1fr); }
+  .chart-grid { grid-template-columns: 2fr 1fr; margin-top: 20px; }
+  .bottom-grid { grid-template-columns: 1.4fr 1fr; margin-top: 20px; }
+  .goal-ring { width: 64px; height: 64px; border-radius: 50%; background: conic-gradient(var(--indigo) 50%, var(--border) 0); display:flex; align-items:center; justify-content:center; }
+  .goal-ring-inner { width: 50px; height: 50px; border-radius: 50%; background: var(--surface); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:13px; }
+  .achv-item { display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--border); }
+  .achv-item:last-child { border-bottom: none; }
+  .achv-emoji { width:38px; height:38px; border-radius:10px; background:var(--grad-brand-soft); display:flex; align-items:center; justify-content:center; font-size:18px; }
+  @media (max-width:1100px) { .kpi-grid { grid-template-columns: repeat(2,1fr); } .chart-grid, .bottom-grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="app-shell">
+
+  <aside class="sidebar">
+    <div class="brand" style="padding:10px 10px 18px;"><div class="brand-mark">IP</div>InterviewPilot</div>
+    <a class="side-link active" href="dashboard.html"><span class="icon-box"><i data-lucide="layout-dashboard" style="width:17px"></i></span>Dashboard</a>
+    <a class="side-link" href="interview-setup.html"><span class="icon-box"><i data-lucide="play-circle" style="width:17px"></i></span>Yeni Mulakat</a>
+    <a class="side-link" href="history.html"><span class="icon-box"><i data-lucide="history" style="width:17px"></i></span>Gecmis</a>
+    <a class="side-link" href="analytics.html"><span class="icon-box"><i data-lucide="bar-chart-3" style="width:17px"></i></span>Analitik</a>
+    <a class="side-link" href="roadmap.html"><span class="icon-box"><i data-lucide="map" style="width:17px"></i></span>Yol Haritasi</a>
+
+    <div class="sidebar-section-label">Kariyer</div>
+    <a class="side-link" href="resume-analysis.html"><span class="icon-box"><i data-lucide="file-search" style="width:17px"></i></span>CV Analizi</a>
+    <a class="side-link" href="job-match.html"><span class="icon-box"><i data-lucide="target" style="width:17px"></i></span>Is Uyumu</a>
+    <a class="side-link" href="career-coach.html"><span class="icon-box"><i data-lucide="compass" style="width:17px"></i></span>AI Kariyer Kocu</a>
+    <a class="side-link" href="portfolio.html"><span class="icon-box"><i data-lucide="github" style="width:17px"></i></span>Portfolyo</a>
+
+    <div class="sidebar-section-label">Topluluk</div>
+    <a class="side-link" href="leaderboard.html"><span class="icon-box"><i data-lucide="trophy" style="width:17px"></i></span>Liderlik Tablosu</a>
+    <a class="side-link" href="challenges.html"><span class="icon-box"><i data-lucide="swords" style="width:17px"></i></span>Gunluk Meydan Okuma</a>
+
+    <div class="sidebar-section-label">Hesap</div>
+    <a class="side-link" href="profile.html"><span class="icon-box"><i data-lucide="user" style="width:17px"></i></span>Profil</a>
+    <a class="side-link" href="admin.html"><span class="icon-box"><i data-lucide="shield" style="width:17px"></i></span>Admin Panel</a>
+
+    <div style="margin-top:auto; padding:14px 10px; border-top:1px solid var(--border);">
+      <div class="flex items-center gap-12">
+        <div class="avatar">ET</div>
+        <div style="min-width:0;">
+          <div style="font-weight:700; font-size:13.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Emine Tekdemir</div>
+          <div class="faint" style="font-size:12px;">Level 7 · 3.240 XP</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main-content">
+    <div class="topbar">
+      <div><div class="h4">Merhaba, Emine 👋</div><div class="faint" style="font-size:13px;">Bugun pratik yapmaya hazir misin?</div></div>
+      <div class="flex items-center gap-12">
+        <div class="switch theme-switch" onclick="toggleTheme()"></div>
+        <button class="btn btn-icon btn-ghost"><i data-lucide="bell" style="width:18px"></i></button>
+        <a href="interview-setup.html" class="btn btn-primary btn-sm">+ Yeni Mulakat</a>
+      </div>
+    </div>
+
+    <div class="page-body">
+
+      <div class="empty-state hidden" id="emptyState">
+        <div class="icon-box"><i data-lucide="sparkles"></i></div>
+        <div class="h4">Henuz bir mulakat yapmadin</div>
+        <p class="faint" style="font-size:13.5px; margin-top:6px;">Ilk mulakatini tamamladiginda buradaki tum istatistikler gercek verilerinle dolacak.</p>
+        <a href="interview-setup.html" class="btn btn-primary" style="margin-top:16px;">Ilk Mulakatini Baslat</a>
+      </div>
+
+      <div id="dashContent" class="hidden">
+      <div class="grid kpi-grid">
+        <div class="card kpi-card card-hover fade-up">
+          <div class="flex justify-between items-center">
+            <div><div class="kpi-icon"><i data-lucide="flame" style="width:20px"></i></div>
+              <div class="kpi-label">Mulakat Serisi</div>
+              <div class="kpi-value" id="kpiStreak">-</div>
+              <div class="kpi-delta faint">ardisik gun</div>
+            </div>
+          </div>
+        </div>
+        <div class="card kpi-card card-hover fade-up delay-1">
+          <div class="kpi-icon"><i data-lucide="award" style="width:20px"></i></div>
+          <div class="kpi-label">Ortalama Skor</div>
+          <div class="kpi-value" id="kpiAvg">-</div>
+        </div>
+        <div class="card kpi-card card-hover fade-up delay-2">
+          <div class="kpi-icon"><i data-lucide="clipboard-list" style="width:20px"></i></div>
+          <div class="kpi-label">Toplam Mulakat</div>
+          <div class="kpi-value" id="kpiTotal">-</div>
+        </div>
+        <div class="card kpi-card card-hover fade-up delay-3">
+          <div class="kpi-icon"><i data-lucide="trophy" style="width:20px"></i></div>
+          <div class="kpi-label">En Yuksek Skor</div>
+          <div class="kpi-value" id="kpiBest">-</div>
+        </div>
+      </div>
+
+      <div class="grid chart-grid">
+        <div class="card fade-up">
+          <div class="flex justify-between items-center" style="margin-bottom:16px;">
+            <div class="h4">Mulakat Skor Gecmisi</div>
+            <div class="tag">Son mulakatlar</div>
+          </div>
+          <canvas id="weeklyChart" height="90"></canvas>
+        </div>
+        <div class="card fade-up delay-1">
+          <div class="flex justify-between items-center" style="margin-bottom:8px;">
+            <div class="h4">Devam Et</div>
+          </div>
+          <p class="faint" style="font-size:13px; margin-top:6px;">Serini surdurmek icin bugun de bir mulakat yap</p>
+          <a href="interview-setup.html" class="btn btn-secondary" style="width:100%; margin-top:16px;">Yeni Mulakat Baslat</a>
+          <hr style="border:none; border-top:1px solid var(--border); margin:20px 0;">
+          <div class="flex justify-between" style="font-size:13px;"><span class="muted">En guclu konu</span><span class="badge badge-success" id="strongTopic">-</span></div>
+          <div class="flex justify-between" style="margin-top:10px; font-size:13px;"><span class="muted">En zayif konu</span><span class="badge badge-warning" id="weakTopic">-</span></div>
+        </div>
+      </div>
+
+      <div class="grid bottom-grid">
+        <div class="card fade-up">
+          <div class="flex justify-between items-center" style="margin-bottom:12px;">
+            <div class="h4">Son Mulakatlar</div>
+            <a href="history.html" class="faint" style="font-size:13px; font-weight:600;">Tumunu gor →</a>
+          </div>
+          <table class="table">
+            <thead><tr><th>Sirket</th><th>Rol</th><th>Tur</th><th>Skor</th><th>Tarih</th></tr></thead>
+            <tbody id="recentRows"></tbody>
+          </table>
+        </div>
+        <div class="flex-col gap-16">
+          <div class="card fade-up delay-1">
+            <div class="h4" style="margin-bottom:8px;">Ortalama Beceri Profili</div>
+            <canvas id="radarChart" height="200"></canvas>
+          </div>
+        </div>
+      </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="assets/app.js"></script>
+<script>
+  const API = "";
+  lucide.createIcons();
+
+  function fmtDate(iso) {
+    if (!iso) return "";
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return iso;
+    return d.toLocaleDateString("tr-TR", { day: "2-digit", month: "2-digit" });
+  }
+
+  async function loadDashboard() {
+    let stats;
+    try {
+      const r = await fetch(`${API}/api/history/stats`);
+      if (!r.ok) throw new Error("stats alinamadi");
+      stats = await r.json();
+    } catch (e) {
+      // Backend calismiyorsa sessizce bos durum goster
+      document.getElementById("emptyState").classList.remove("hidden");
+      document.getElementById("emptyState").querySelector("p").textContent = "Backend'e ulasilamadi. Sunucunun calistigindan emin ol.";
+      return;
+    }
+
+    if (!stats.total_interviews) {
+      document.getElementById("emptyState").classList.remove("hidden");
+      return;
+    }
+    document.getElementById("dashContent").classList.remove("hidden");
+
+    document.getElementById("kpiStreak").textContent = `${stats.streak_days} gun`;
+    document.getElementById("kpiAvg").textContent = `${stats.avg_score}/100`;
+    document.getElementById("kpiTotal").textContent = stats.total_interviews;
+    document.getElementById("kpiBest").textContent = `${stats.best_score}/100`;
+    document.getElementById("strongTopic").textContent = stats.strongest_topic || "-";
+    document.getElementById("weakTopic").textContent = stats.weakest_topic || "-";
+
+    new Chart(document.getElementById("weeklyChart"), {
+      type: "line",
+      data: {
+        labels: stats.weekly.map(w => fmtDate(w.date)),
+        datasets: [{
+          label: "Skor", data: stats.weekly.map(w => w.score), borderColor: "#6366f1", borderWidth: 3,
+          backgroundColor: "rgba(99,102,241,.12)", fill: true, tension: .4, pointRadius: 4,
+          pointBackgroundColor: "#6366f1",
+        }]
+      },
+      options: { plugins: { legend: { display: false } }, scales: { y: { min: 0, max: 100, grid: { color: "rgba(150,150,180,.08)" } }, x: { grid: { display:false } } } }
+    });
+
+    const sub = stats.avg_sub_scores || {};
+    new Chart(document.getElementById("radarChart"), {
+      type: "radar",
+      data: {
+        labels: ["Teknik", "Iletisim", "Ozguven", "Sistem Tasarimi"],
+        datasets: [{ data: [sub.technical || 0, sub.communication || 0, sub.confidence || 0, sub.system_design || 0], backgroundColor: "rgba(139,92,246,.18)", borderColor: "#8b5cf6", pointBackgroundColor: "#8b5cf6" }]
+      },
+      options: { plugins: { legend: { display: false } }, scales: { r: { min:0, max:100, ticks:{ display:false }, grid:{ color:"rgba(150,150,180,.12)" } } } }
+    });
+
+    const rows = document.getElementById("recentRows");
+    rows.innerHTML = "";
+    stats.recent.forEach(r => {
+      const tr = document.createElement("tr");
+      const scoreColor = r.overall_score >= 80 ? "badge-success" : r.overall_score >= 65 ? "badge-warning" : "badge-danger";
+      tr.innerHTML = `<td style="font-weight:600;">${r.company_name || "-"}</td><td>${r.role || "-"}</td><td><span class="tag">${r.interview_type || "-"}</span></td><td><span class="badge ${scoreColor}">${r.overall_score}/100</span></td><td class="faint">${fmtDate(r.created_at)}</td>`;
+      rows.appendChild(tr);
+    });
+  }
+
+  loadDashboard();
+</script>
+</body>
+</html>

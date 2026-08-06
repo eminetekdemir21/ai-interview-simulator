@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Profil — InterviewPilot AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Manrope:wght@700;800&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+
+<link rel="stylesheet" href="assets/style.css">
+<style>
+
+  .settings-row { display:flex; justify-content:space-between; align-items:center; padding:14px 0; border-bottom:1px solid var(--border); }
+  .settings-row:last-child { border-bottom:none; }
+  
+</style>
+</head>
+<body>
+<div class="app-shell">
+<aside class="sidebar">
+  <div class="brand" style="padding:10px 10px 18px;"><div class="brand-mark">IP</div>InterviewPilot</div>
+  <a class="side-link" href="dashboard.html"><span class="icon-box"><i data-lucide="layout-dashboard" style="width:17px"></i></span>Dashboard</a>
+  <a class="side-link" href="interview-setup.html"><span class="icon-box"><i data-lucide="play-circle" style="width:17px"></i></span>Yeni Mulakat</a>
+  <a class="side-link" href="history.html"><span class="icon-box"><i data-lucide="history" style="width:17px"></i></span>Gecmis</a>
+  <a class="side-link" href="analytics.html"><span class="icon-box"><i data-lucide="bar-chart-3" style="width:17px"></i></span>Analitik</a>
+  <a class="side-link" href="roadmap.html"><span class="icon-box"><i data-lucide="map" style="width:17px"></i></span>Yol Haritasi</a>
+  <div class="sidebar-section-label">Kariyer</div>
+  <a class="side-link" href="resume-analysis.html"><span class="icon-box"><i data-lucide="file-search" style="width:17px"></i></span>CV Analizi</a>
+  <a class="side-link" href="job-match.html"><span class="icon-box"><i data-lucide="target" style="width:17px"></i></span>Is Uyumu</a>
+  <a class="side-link" href="career-coach.html"><span class="icon-box"><i data-lucide="compass" style="width:17px"></i></span>AI Kariyer Kocu</a>
+  <a class="side-link" href="portfolio.html"><span class="icon-box"><i data-lucide="github" style="width:17px"></i></span>Portfolyo</a>
+  <div class="sidebar-section-label">Topluluk</div>
+  <a class="side-link" href="leaderboard.html"><span class="icon-box"><i data-lucide="trophy" style="width:17px"></i></span>Liderlik Tablosu</a>
+  <a class="side-link" href="challenges.html"><span class="icon-box"><i data-lucide="swords" style="width:17px"></i></span>Gunluk Meydan Okuma</a>
+  <div class="sidebar-section-label">Hesap</div>
+  <a class="side-link active" href="profile.html"><span class="icon-box"><i data-lucide="user" style="width:17px"></i></span>Profil</a>
+  <a class="side-link" href="admin.html"><span class="icon-box"><i data-lucide="shield" style="width:17px"></i></span>Admin Panel</a>
+</aside>
+  <div class="main-content">
+    <div class="topbar">
+      <div><div class="h4">Profil & Ayarlar</div><div class="faint" style="font-size:13px;">Hesap bilgilerini ve tercihlerini yonet</div></div>
+      <div class="flex items-center gap-12">
+        <div class="switch theme-switch" onclick="toggleTheme()"></div>
+        
+      </div>
+    </div>
+    <div class="page-body">
+      <div class="grid" style="grid-template-columns:1fr 1.6fr; gap:20px;">
+        <div class="card fade-up text-center">
+          <div class="avatar" style="width:84px; height:84px; font-size:28px; margin:0 auto 14px;">ET</div>
+          <div class="h4">Emine Tekdemir</div>
+          <p class="faint" style="font-size:13px;">eminetekdemir8821@gmail.com</p>
+          <span class="badge badge-primary" style="margin-top:10px;">Level 7 · Pro Uye</span>
+          <button class="btn btn-secondary" style="width:100%; margin-top:18px;">Fotografi Degistir</button>
+        </div>
+        <div>
+          <div class="card fade-up delay-1" style="margin-bottom:16px;">
+            <div class="h4" style="margin-bottom:6px;">Kisisel Bilgiler</div>
+            <div class="settings-row"><span class="muted">Ad Soyad</span><span style="font-weight:600;">Emine Tekdemir</span></div>
+            <div class="settings-row"><span class="muted">E-posta</span><span style="font-weight:600;">eminetekdemir8821@gmail.com</span></div>
+            <div class="settings-row"><span class="muted">Hedef Rol</span><span style="font-weight:600;">Backend Developer</span></div>
+          </div>
+          <div class="card fade-up delay-2">
+            <div class="h4" style="margin-bottom:6px;">Tercihler</div>
+            <div class="settings-row"><span>E-posta bildirimleri</span><div class="switch active"></div></div>
+            <div class="settings-row"><span>Gunluk hatirlatma</span><div class="switch active"></div></div>
+            <div class="settings-row"><span>Karanlik mod</span><div class="switch theme-switch" onclick="toggleTheme()"></div></div>
+            <div class="settings-row"><span>Sesli mulakat modu (varsayilan)</span><div class="switch"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="assets/app.js"></script>
+<script>
+  lucide.createIcons();
+
+</script>
+</body>
+</html>

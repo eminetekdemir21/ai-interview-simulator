@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gecmis — InterviewPilot AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Manrope:wght@700;800&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+
+<link rel="stylesheet" href="assets/style.css">
+<style>
+
+  .filter-bar { display:flex; gap:10px; margin-bottom:18px; flex-wrap:wrap; }
+  .hist-row { display:grid; grid-template-columns: 44px 1.5fr 1fr 90px 70px 65px 140px; align-items:center; gap:12px; padding:14px 6px; border-bottom:1px solid var(--border); }
+  .hist-row:last-child { border-bottom:none; }
+  .hist-actions { display:flex; gap:6px; }
+  .hist-actions button { margin-top:0; padding:6px 10px; font-size:12px; box-shadow:none; }
+
+</style>
+</head>
+<body>
+<div class="app-shell">
+<aside class="sidebar">
+  <div class="brand" style="padding:10px 10px 18px;"><div class="brand-mark">IP</div>InterviewPilot</div>
+  <a class="side-link" href="dashboard.html"><span class="icon-box"><i data-lucide="layout-dashboard" style="width:17px"></i></span>Dashboard</a>
+  <a class="side-link" href="interview-setup.html"><span class="icon-box"><i data-lucide="play-circle" style="width:17px"></i></span>Yeni Mulakat</a>
+  <a class="side-link active" href="history.html"><span class="icon-box"><i data-lucide="history" style="width:17px"></i></span>Gecmis</a>
+  <a class="side-link" href="analytics.html"><span class="icon-box"><i data-lucide="bar-chart-3" style="width:17px"></i></span>Analitik</a>
+  <a class="side-link" href="roadmap.html"><span class="icon-box"><i data-lucide="map" style="width:17px"></i></span>Yol Haritasi</a>
+  <div class="sidebar-section-label">Kariyer</div>
+  <a class="side-link" href="resume-analysis.html"><span class="icon-box"><i data-lucide="file-search" style="width:17px"></i></span>CV Analizi</a>
+  <a class="side-link" href="job-match.html"><span class="icon-box"><i data-lucide="target" style="width:17px"></i></span>Is Uyumu</a>
+  <a class="side-link" href="career-coach.html"><span class="icon-box"><i data-lucide="compass" style="width:17px"></i></span>AI Kariyer Kocu</a>
+  <a class="side-link" href="portfolio.html"><span class="icon-box"><i data-lucide="github" style="width:17px"></i></span>Portfolyo</a>
+  <div class="sidebar-section-label">Topluluk</div>
+  <a class="side-link" href="leaderboard.html"><span class="icon-box"><i data-lucide="trophy" style="width:17px"></i></span>Liderlik Tablosu</a>
+  <a class="side-link" href="challenges.html"><span class="icon-box"><i data-lucide="swords" style="width:17px"></i></span>Gunluk Meydan Okuma</a>
+  <div class="sidebar-section-label">Hesap</div>
+  <a class="side-link" href="profile.html"><span class="icon-box"><i data-lucide="user" style="width:17px"></i></span>Profil</a>
+  <a class="side-link" href="admin.html"><span class="icon-box"><i data-lucide="shield" style="width:17px"></i></span>Admin Panel</a>
+</aside>
+  <div class="main-content">
+    <div class="topbar">
+      <div><div class="h4">Mulakat Gecmisi</div><div class="faint" style="font-size:13px;">Tum gecmis mulakatlarin ve raporlarin</div></div>
+      <div class="flex items-center gap-12">
+        <div class="switch theme-switch" onclick="toggleTheme()"></div>
+        
+      </div>
+    </div>
+    <div class="page-body">
+      <div class="filter-bar">
+        <select class="input" style="width:200px;" id="companyFilter"><option value="">Tum Sirketler / Genel</option></select>
+        <select class="input" style="width:180px;" id="typeFilter"><option value="">Tum Turler</option></select>
+      </div>
+      <div class="empty-state hidden" id="emptyState">
+        <div class="icon-box"><i data-lucide="history"></i></div>
+        <div class="h4">Henuz kayitli bir mulakat yok</div>
+        <p class="faint" style="font-size:13.5px; margin-top:6px;">Bir mulakat tamamladiginda burada listelenecek.</p>
+        <a href="interview-setup.html" class="btn btn-primary" style="margin-top:16px;">Mulakat Baslat</a>
+      </div>
+      <div class="card fade-up hidden" id="histCard">
+        <div class="hist-row" style="font-size:12px; font-weight:700; color:var(--text-faint); text-transform:uppercase;">
+          <span></span><span>Sirket / Rol</span><span>Tur</span><span>Tarih</span><span>Skor</span><span>Soru</span><span>Islem</span>
+        </div>
+        <div id="histRows"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="assets/app.js"></script>
+<script>
+  const API = "";
+  lucide.createIcons();
+
+  function fmtDate(iso) {
+    if (!iso) return "";
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return iso;
+    return d.toLocaleDateString("tr-TR", { day: "2-digit", month: "2-digit", year: "numeric" });
+  }
+
+  let allItems = [];
+
+  function renderRows() {
+    const coFilter = document.getElementById("companyFilter").value;
+    const typeFilter = document.getElementById("typeFilter").value;
+    const rows = document.getElementById("histRows");
+    rows.innerHTML = "";
+
+    const filtered = allItems.filter(it =>
+      (!coFilter || it.company_id === coFilter) &&
+      (!typeFilter || it.interview_type === typeFilter)
+    );
+
+    filtered.forEach(it => {
+      const co = COMPANIES.find(x => x.id === it.company_id);
+      const logoColor = co ? co.color : "#8b5cf6";
+      const initials = co ? co.initials : "GN";
+      const companyName = it.company_name || "Genel Mulakat";
+      const badgeClass = it.overall_score >= 80 ? "badge-success" : it.overall_score >= 65 ? "badge-warning" : "badge-danger";
+      const div = document.createElement("div");
+      div.className = "hist-row";
+      div.innerHTML = `<div class="co-logo" style="width:36px;height:36px;font-size:12px;background:${logoColor}">${initials}</div>
+        <div><div style="font-weight:700; font-size:13.5px;">${companyName}</div><div class="faint" style="font-size:12px;">${it.role || "-"}</div></div>
+        <span class="tag">${it.interview_type || "-"}</span>
+        <span class="faint" style="font-size:13px;">${fmtDate(it.created_at)}</span>
+        <span class="badge ${badgeClass}">${it.overall_score}</span>
+        <span class="faint" style="font-size:13px;">${it.question_count}</span>
+        <div class="hist-actions">
+          <button class="btn-outline" data-action="view">Rapor</button>
+          <button class="btn-outline" data-action="pdf">PDF</button>
+        </div>`;
+      div.querySelector('[data-action="view"]').addEventListener("click", () => {
+        sessionStorage.setItem("ip_session_id", it.id);
+        window.location.href = "report.html";
+      });
+      div.querySelector('[data-action="pdf"]').addEventListener("click", () => {
+        window.open(`${API}/api/history/${it.id}/pdf`, "_blank");
+      });
+      rows.appendChild(div);
+    });
+  }
+
+  async function loadHistory() {
+    try {
+      const r = await fetch(`${API}/api/history`);
+      if (!r.ok) throw new Error("gecmis alinamadi");
+      allItems = await r.json();
+    } catch (e) {
+      document.getElementById("emptyState").classList.remove("hidden");
+      document.getElementById("emptyState").querySelector("p").textContent = "Backend'e ulasilamadi. Sunucunun calistigindan emin ol.";
+      return;
+    }
+
+    if (!allItems.length) {
+      document.getElementById("emptyState").classList.remove("hidden");
+      return;
+    }
+    document.getElementById("histCard").classList.remove("hidden");
+
+    const coFilter = document.getElementById("companyFilter");
+    const seenCos = new Set();
+    allItems.forEach(it => {
+      if (it.company_id && !seenCos.has(it.company_id)) {
+        seenCos.add(it.company_id);
+        const co = COMPANIES.find(c => c.id === it.company_id);
+        const opt = document.createElement("option");
+        opt.value = it.company_id;
+        opt.textContent = co ? co.name : it.company_name;
+        coFilter.appendChild(opt);
+      }
+    });
+
+    const typeFilter = document.getElementById("typeFilter");
+    const seenTypes = new Set();
+    allItems.forEach(it => {
+      if (it.interview_type && !seenTypes.has(it.interview_type)) {
+        seenTypes.add(it.interview_type);
+        const opt = document.createElement("option");
+        opt.value = it.interview_type;
+        opt.textContent = it.interview_type;
+        typeFilter.appendChild(opt);
+      }
+    });
+
+    coFilter.addEventListener("change", renderRows);
+    typeFilter.addEventListener("change", renderRows);
+
+    renderRows();
+  }
+
+  loadHistory();
+</script>
+</body>
+</html>

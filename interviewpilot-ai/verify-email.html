@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>E-posta Dogrulama — InterviewPilot AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Manrope:wght@700;800&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<link rel="stylesheet" href="assets/style.css">
+<style>
+  .auth-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
+  .auth-glow { position: absolute; top: -200px; left: 50%; transform: translateX(-50%); width: 800px; height: 500px; background: var(--grad-brand); opacity: .16; filter: blur(120px); border-radius: 50%; }
+  .auth-card { width: 420px; position: relative; z-index: 1; text-align: center; }
+  .otp-row { display:flex; gap:10px; justify-content:center; margin: 20px 0; }
+  .otp-box { width:48px; height:56px; text-align:center; font-size:20px; font-weight:700; }
+</style>
+</head>
+<body>
+<div class="auth-wrap">
+  <div class="auth-glow"></div>
+  <div class="auth-card">
+    <div class="feature-icon pulse" style="margin:0 auto 20px; width:56px; height:56px;"><i data-lucide="mail-check"></i></div>
+    <h2 class="h3">E-postani dogrula</h2>
+    <p style="margin-top:8px;"><b>eminetekdemir8821@gmail.com</b> adresine 6 haneli bir kod gonderdik</p>
+    <div class="card card-glow" style="padding:28px; margin-top:24px;">
+      <div class="otp-row">
+        <input class="input otp-box" maxlength="1" value="4"><input class="input otp-box" maxlength="1" value="8">
+        <input class="input otp-box" maxlength="1" value="2"><input class="input otp-box" maxlength="1">
+        <input class="input otp-box" maxlength="1"><input class="input otp-box" maxlength="1">
+      </div>
+      <a href="dashboard.html" class="btn btn-primary" style="width:100%;">Dogrula ve Devam Et</a>
+      <p class="faint" style="margin-top:16px; font-size:13px;">Kod gelmedi mi? <a href="#" style="color:var(--indigo-600); font-weight:700;">Tekrar gonder</a></p>
+    </div>
+  </div>
+</div>
+<script>lucide.createIcons();</script>
+</body>
+</html>

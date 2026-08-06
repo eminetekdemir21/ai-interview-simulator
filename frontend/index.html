@@ -313,6 +313,64 @@
   }
   .muted { color: var(--muted); font-size: 13px; }
 
+  .top-actions { display: flex; justify-content: flex-end; margin: -4px 0 10px; }
+  .link-btn {
+    background: none;
+    border: none;
+    box-shadow: none;
+    color: #6b57a8;
+    font-weight: 700;
+    font-size: 13px;
+    padding: 6px 10px;
+    margin: 0;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .link-btn:hover { opacity: 0.75; transform: none; }
+  #history-card { border-top-color: var(--green); background: linear-gradient(180deg, var(--green-bg) 0%, var(--white) 14%); }
+  .history-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--white);
+    border: 1.5px solid #eee4fb;
+    border-radius: 14px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+  }
+  .history-item-main { flex: 1; min-width: 0; }
+  .history-item-job {
+    font-size: 13.5px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .history-item-date { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+  .history-score {
+    flex-shrink: 0;
+    background: var(--yellow-bg);
+    color: #6b4a00;
+    font-weight: 800;
+    font-size: 13px;
+    padding: 4px 10px;
+    border-radius: 999px;
+  }
+  .history-actions { display: flex; gap: 6px; flex-shrink: 0; }
+  .history-actions button {
+    margin-top: 0;
+    padding: 7px 12px;
+    font-size: 12px;
+    box-shadow: none;
+  }
+  .btn-outline {
+    background: var(--white);
+    color: #6b57a8;
+    border: 1.5px solid #d9c9f5;
+  }
+  #pdf-btn { background: linear-gradient(90deg, var(--blue), var(--green)); }
+  .empty-hint { color: var(--muted); font-size: 13.5px; padding: 8px 0; }
+
   .thinking {
     display: none;
     align-items: center;
@@ -375,6 +433,17 @@
   <div class="subtitle">CV'ni ve is ilanini yukle, yapay zeka seninle teknik mulakat yapsin.</div>
   <div class="badge-pill">✨ Gemini AI ile calisir</div>
 
+  <div class="top-actions">
+    <button class="link-btn" id="history-nav-btn">📚 Geçmiş Mülakatlarım</button>
+  </div>
+
+  <div class="card hidden" id="history-card">
+    <h2>📚 Geçmiş Mülakatlarım</h2>
+    <div id="history-list"></div>
+    <div class="empty-hint hidden" id="history-empty">Henüz tamamlanmış bir mülakatın yok.</div>
+    <button class="btn-outline" id="history-close-btn" type="button">Kapat</button>
+  </div>
+
   <div class="card" id="setup-card">
     <h2>📄 CV ve Is Ilani</h2>
     <label>📎 CV (PDF)</label>
@@ -423,7 +492,10 @@
     <h3>🌟 Gelistirilmesi Gereken Yonler</h3>
     <ul id="weaknesses-list"></ul>
     <p id="summary-text"></p>
-    <button id="restart-btn">🔄 Yeniden Basla</button>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <button id="pdf-btn">⬇️ PDF Olarak İndir</button>
+      <button id="restart-btn">🔄 Yeniden Basla</button>
+    </div>
   </div>
 </div>
 
@@ -598,6 +670,34 @@ function launchConfetti() {
   }
 }
 
+let currentReportId = null;
+
+// result-card'i doldurup gosteren ortak fonksiyon; hem yeni bitmis bir
+// mulakat icin hem de gecmisten acilan eski bir rapor icin kullanilir.
+function renderReportCard(data, { confetti = false } = {}) {
+  document.getElementById("result-card").classList.remove("hidden");
+  document.getElementById("final-score").textContent = `${data.overall_score}/100`;
+
+  const sList = document.getElementById("strengths-list");
+  sList.innerHTML = "";
+  (data.strengths || []).forEach(s => {
+    const li = document.createElement("li");
+    li.textContent = s;
+    sList.appendChild(li);
+  });
+
+  const wList = document.getElementById("weaknesses-list");
+  wList.innerHTML = "";
+  (data.weaknesses || []).forEach(w => {
+    const li = document.createElement("li");
+    li.textContent = w;
+    wList.appendChild(li);
+  });
+
+  document.getElementById("summary-text").textContent = data.summary;
+  if (confetti) launchConfetti();
+}
+
 async function showFinalReport() {
   const r = await fetch(`${API}/api/result/${sessionId}`);
   if (!r.ok) {
@@ -607,31 +707,98 @@ async function showFinalReport() {
   const data = await r.json();
 
   document.getElementById("interview-card").classList.add("hidden");
-  document.getElementById("result-card").classList.remove("hidden");
-  document.getElementById("final-score").textContent = `${data.overall_score}/100`;
-
-  const sList = document.getElementById("strengths-list");
-  sList.innerHTML = "";
-  data.strengths.forEach(s => {
-    const li = document.createElement("li");
-    li.textContent = s;
-    sList.appendChild(li);
-  });
-
-  const wList = document.getElementById("weaknesses-list");
-  wList.innerHTML = "";
-  data.weaknesses.forEach(w => {
-    const li = document.createElement("li");
-    li.textContent = w;
-    wList.appendChild(li);
-  });
-
-  document.getElementById("summary-text").textContent = data.summary;
-  launchConfetti();
+  currentReportId = sessionId;
+  renderReportCard(data, { confetti: true });
 }
 
 document.getElementById("restart-btn").addEventListener("click", () => {
   location.reload();
+});
+
+document.getElementById("pdf-btn").addEventListener("click", () => {
+  if (!currentReportId) return;
+  window.open(`${API}/api/history/${currentReportId}/pdf`, "_blank");
+});
+
+// ---------- Gecmis Mulakatlar ----------
+let lastVisibleCardId = null;
+
+function currentVisibleCardId() {
+  const ids = ["setup-card", "interview-card", "result-card"];
+  return ids.find(id => !document.getElementById(id).classList.contains("hidden")) || null;
+}
+
+function fmtDate(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString("tr-TR", { day: "2-digit", month: "2-digit", year: "numeric" }) +
+    " " + d.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
+}
+
+async function openHistory() {
+  lastVisibleCardId = currentVisibleCardId();
+  ["setup-card", "interview-card", "result-card"].forEach(id => document.getElementById(id).classList.add("hidden"));
+  document.getElementById("history-card").classList.remove("hidden");
+
+  const listEl = document.getElementById("history-list");
+  const emptyEl = document.getElementById("history-empty");
+  listEl.innerHTML = "";
+  emptyEl.classList.add("hidden");
+
+  try {
+    const r = await fetch(`${API}/api/history`);
+    if (!r.ok) throw new Error(await errorFromResponse(r, "Gecmis alinamadi"));
+    const items = await r.json();
+
+    if (items.length === 0) {
+      emptyEl.classList.remove("hidden");
+      return;
+    }
+
+    items.forEach(item => {
+      const row = document.createElement("div");
+      row.className = "history-item";
+      row.innerHTML = `
+        <div class="history-item-main">
+          <div class="history-item-job">${(item.job_preview || "İş ilanı belirtilmemiş").slice(0, 70)}</div>
+          <div class="history-item-date">${fmtDate(item.created_at)} · ${item.question_count} soru</div>
+        </div>
+        <div class="history-score">${item.overall_score}/100</div>
+        <div class="history-actions">
+          <button class="btn-outline" data-action="view">Raporu Gör</button>
+          <button class="btn-outline" data-action="pdf">PDF</button>
+        </div>
+      `;
+      row.querySelector('[data-action="view"]').addEventListener("click", () => viewHistoryItem(item.id));
+      row.querySelector('[data-action="pdf"]').addEventListener("click", () => window.open(`${API}/api/history/${item.id}/pdf`, "_blank"));
+      listEl.appendChild(row);
+    });
+  } catch (e) {
+    emptyEl.textContent = e.message;
+    emptyEl.classList.remove("hidden");
+  }
+}
+
+async function viewHistoryItem(id) {
+  try {
+    const r = await fetch(`${API}/api/history/${id}`);
+    if (!r.ok) throw new Error(await errorFromResponse(r, "Rapor alinamadi"));
+    const data = await r.json();
+    document.getElementById("history-card").classList.add("hidden");
+    currentReportId = id;
+    renderReportCard(data, { confetti: false });
+  } catch (e) {
+    alert(e.message);
+  }
+}
+
+document.getElementById("history-nav-btn").addEventListener("click", openHistory);
+
+document.getElementById("history-close-btn").addEventListener("click", () => {
+  document.getElementById("history-card").classList.add("hidden");
+  const restoreId = lastVisibleCardId || "setup-card";
+  document.getElementById(restoreId).classList.remove("hidden");
 });
 </script>
 </body>

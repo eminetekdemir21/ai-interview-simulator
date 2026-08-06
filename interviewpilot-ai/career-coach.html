@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Kariyer Kocu — InterviewPilot AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Manrope:wght@700;800&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+
+<link rel="stylesheet" href="assets/style.css">
+<style>
+
+  .chat-wrap { display:flex; flex-direction:column; height:calc(100vh - 160px); }
+  .chat-msgs { flex:1; overflow-y:auto; padding:8px; }
+  .cbubble { max-width:70%; padding:12px 16px; border-radius:16px; margin-bottom:14px; font-size:14px; line-height:1.6; }
+  .cbubble.ai { background:var(--surface-2); border-bottom-left-radius:4px; }
+  .cbubble.user { background:var(--grad-brand); color:#fff; margin-left:auto; border-bottom-right-radius:4px; }
+  .suggest-chip { display:inline-block; padding:8px 14px; border:1px solid var(--border); border-radius:999px; font-size:13px; font-weight:600; cursor:pointer; margin:4px; background:var(--surface); }
+  .suggest-chip:hover { border-color:var(--indigo); color:var(--indigo-600); }
+  
+</style>
+</head>
+<body>
+<div class="app-shell">
+<aside class="sidebar">
+  <div class="brand" style="padding:10px 10px 18px;"><div class="brand-mark">IP</div>InterviewPilot</div>
+  <a class="side-link" href="dashboard.html"><span class="icon-box"><i data-lucide="layout-dashboard" style="width:17px"></i></span>Dashboard</a>
+  <a class="side-link" href="interview-setup.html"><span class="icon-box"><i data-lucide="play-circle" style="width:17px"></i></span>Yeni Mulakat</a>
+  <a class="side-link" href="history.html"><span class="icon-box"><i data-lucide="history" style="width:17px"></i></span>Gecmis</a>
+  <a class="side-link" href="analytics.html"><span class="icon-box"><i data-lucide="bar-chart-3" style="width:17px"></i></span>Analitik</a>
+  <a class="side-link" href="roadmap.html"><span class="icon-box"><i data-lucide="map" style="width:17px"></i></span>Yol Haritasi</a>
+  <div class="sidebar-section-label">Kariyer</div>
+  <a class="side-link" href="resume-analysis.html"><span class="icon-box"><i data-lucide="file-search" style="width:17px"></i></span>CV Analizi</a>
+  <a class="side-link" href="job-match.html"><span class="icon-box"><i data-lucide="target" style="width:17px"></i></span>Is Uyumu</a>
+  <a class="side-link active" href="career-coach.html"><span class="icon-box"><i data-lucide="compass" style="width:17px"></i></span>AI Kariyer Kocu</a>
+  <a class="side-link" href="portfolio.html"><span class="icon-box"><i data-lucide="github" style="width:17px"></i></span>Portfolyo</a>
+  <div class="sidebar-section-label">Topluluk</div>
+  <a class="side-link" href="leaderboard.html"><span class="icon-box"><i data-lucide="trophy" style="width:17px"></i></span>Liderlik Tablosu</a>
+  <a class="side-link" href="challenges.html"><span class="icon-box"><i data-lucide="swords" style="width:17px"></i></span>Gunluk Meydan Okuma</a>
+  <div class="sidebar-section-label">Hesap</div>
+  <a class="side-link" href="profile.html"><span class="icon-box"><i data-lucide="user" style="width:17px"></i></span>Profil</a>
+  <a class="side-link" href="admin.html"><span class="icon-box"><i data-lucide="shield" style="width:17px"></i></span>Admin Panel</a>
+</aside>
+  <div class="main-content">
+    <div class="topbar">
+      <div><div class="h4">AI Kariyer Kocu</div><div class="faint" style="font-size:13px;">Kariyer sorularini sor, kisisel rehberlik al</div></div>
+      <div class="flex items-center gap-12">
+        <div class="switch theme-switch" onclick="toggleTheme()"></div>
+        
+      </div>
+    </div>
+    <div class="page-body">
+      <div class="card fade-up chat-wrap">
+        <div class="chat-msgs">
+          <div class="cbubble ai">Merhaba Emine! Ben senin AI kariyer kocunum 👋 Son mulakat sonuclarina baktim — System Design konusunda gelisim firsati var. Sana nasil yardimci olabilirim?</div>
+          <div class="cbubble user">Google'a basvurmadan once ne kadar hazir olmam lazim?</div>
+          <div class="cbubble ai">Su anki 78/100 ortalama skorunla orta seviye hazirsin. Google icin genelde 85+ ve System Design'da en az 75 oneriyoruz. Onerilen yol haritani takip edersen 2-3 haftada bu seviyeye ulasabilirsin. Ister misin sana haftalik bir plan cikarayim?</div>
+        </div>
+        <div>
+          <div style="margin-bottom:10px;">
+            <span class="suggest-chip">Maas pazarligi icin ipucu ver</span>
+            <span class="suggest-chip">CV'mde neyi degistirmeliyim?</span>
+            <span class="suggest-chip">Hangi sirkete once basvurmaliyim?</span>
+          </div>
+          <div class="flex gap-12">
+            <input class="input" placeholder="Bir soru yaz...">
+            <button class="btn btn-primary btn-icon"><i data-lucide="send" style="width:16px"></i></button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="assets/app.js"></script>
+<script>
+  lucide.createIcons();
+
+</script>
+</body>
+</html>

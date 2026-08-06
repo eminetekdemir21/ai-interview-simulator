@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mulakat Kur — InterviewPilot AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Manrope:wght@700;800&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<link rel="stylesheet" href="assets/style.css">
+<style>
+  .steps { display:flex; align-items:center; gap:8px; margin-bottom:28px; }
+  .step { display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700; color:var(--text-faint); }
+  .step-dot { width:26px; height:26px; border-radius:50%; background:var(--surface-2); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:12px; }
+  .step.active { color:var(--text); }
+  .step.active .step-dot { background:var(--grad-brand); color:#fff; border:none; }
+  .step-line { width:36px; height:2px; background:var(--border); }
+  .opt-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+  .opt-card { border:1.5px solid var(--border); border-radius:14px; padding:16px; cursor:pointer; text-align:center; transition:.15s; background:var(--surface); }
+  .opt-card:hover { border-color:var(--indigo-300); }
+  .opt-card.selected { border-color:var(--indigo); background:var(--grad-brand-soft); box-shadow:0 0 0 3px rgba(99,102,241,.12); }
+  .opt-card i { width:22px; margin-bottom:8px; }
+  .opt-card .opt-title { font-weight:700; font-size:13.5px; }
+  .opt-card .opt-sub { font-size:11.5px; color:var(--text-faint); margin-top:2px; }
+  .company-search { position:relative; margin-bottom:16px; }
+  .company-search input { padding-left:40px; }
+  .company-search i { position:absolute; left:13px; top:50%; transform:translateY(-50%); color:var(--text-faint); width:16px; }
+  .company-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; max-height:420px; overflow-y:auto; padding-right:4px; }
+  .co-tile { border:1.5px solid var(--border); border-radius:14px; padding:14px; cursor:pointer; transition:.15s; background:var(--surface); }
+  .co-tile:hover { border-color:var(--indigo-300); transform:translateY(-2px); }
+  .co-tile.selected { border-color:var(--indigo); background:var(--grad-brand-soft); box-shadow:0 0 0 3px rgba(99,102,241,.12); }
+  .co-logo { width:38px; height:38px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:13px; color:#fff; margin-bottom:10px; }
+  .co-name { font-weight:700; font-size:13.5px; }
+  .co-focus { font-size:11px; color:var(--text-faint); margin-top:4px; line-height:1.5; }
+  .filter-pills { display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
+  .pill { padding:6px 14px; border-radius:999px; border:1px solid var(--border); font-size:12.5px; font-weight:600; cursor:pointer; background:var(--surface); }
+  .pill.active { background:var(--grad-brand); color:#fff; border:none; }
+  .summary-card { position:sticky; top:20px; }
+  @media (max-width:1200px) { .opt-grid, .company-grid { grid-template-columns:repeat(2,1fr); } }
+  .upload-row { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .file-field { border:1.5px dashed var(--border-strong); border-radius:12px; padding:14px; text-align:center; cursor:pointer; background:var(--bg-alt); }
+  .file-field:hover { border-color:var(--indigo); }
+  .file-field input[type="file"] { display:none; }
+  .file-field .fname { font-size:12px; color:var(--text-faint); margin-top:6px; word-break:break-all; }
+  .setup-error { background:var(--danger-soft); color:var(--danger); border-radius:12px; padding:12px 16px; font-size:13.5px; margin-top:14px; }
+  @media (max-width:800px) { .upload-row { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand" style="padding:10px 10px 18px;"><div class="brand-mark">IP</div>InterviewPilot</div>
+    <a class="side-link" href="dashboard.html"><span class="icon-box"><i data-lucide="layout-dashboard" style="width:17px"></i></span>Dashboard</a>
+    <a class="side-link active" href="interview-setup.html"><span class="icon-box"><i data-lucide="play-circle" style="width:17px"></i></span>Yeni Mulakat</a>
+    <a class="side-link" href="history.html"><span class="icon-box"><i data-lucide="history" style="width:17px"></i></span>Gecmis</a>
+    <a class="side-link" href="analytics.html"><span class="icon-box"><i data-lucide="bar-chart-3" style="width:17px"></i></span>Analitik</a>
+    <a class="side-link" href="roadmap.html"><span class="icon-box"><i data-lucide="map" style="width:17px"></i></span>Yol Haritasi</a>
+    <div class="sidebar-section-label">Kariyer</div>
+    <a class="side-link" href="resume-analysis.html"><span class="icon-box"><i data-lucide="file-search" style="width:17px"></i></span>CV Analizi</a>
+    <a class="side-link" href="job-match.html"><span class="icon-box"><i data-lucide="target" style="width:17px"></i></span>Is Uyumu</a>
+    <a class="side-link" href="career-coach.html"><span class="icon-box"><i data-lucide="compass" style="width:17px"></i></span>AI Kariyer Kocu</a>
+    <a class="side-link" href="portfolio.html"><span class="icon-box"><i data-lucide="github" style="width:17px"></i></span>Portfolyo</a>
+    <div class="sidebar-section-label">Topluluk</div>
+    <a class="side-link" href="leaderboard.html"><span class="icon-box"><i data-lucide="trophy" style="width:17px"></i></span>Liderlik Tablosu</a>
+    <a class="side-link" href="challenges.html"><span class="icon-box"><i data-lucide="swords" style="width:17px"></i></span>Gunluk Meydan Okuma</a>
+    <div class="sidebar-section-label">Hesap</div>
+    <a class="side-link" href="profile.html"><span class="icon-box"><i data-lucide="user" style="width:17px"></i></span>Profil</a>
+    <a class="side-link" href="admin.html"><span class="icon-box"><i data-lucide="shield" style="width:17px"></i></span>Admin Panel</a>
+  </aside>
+
+  <div class="main-content">
+    <div class="topbar">
+      <div><div class="h4">Yeni Mulakat Olustur</div><div class="faint" style="font-size:13px;">Rolunu, zorluk seviyeni ve hedef sirketini sec</div></div>
+      <div class="flex items-center gap-12">
+        <div class="switch theme-switch" onclick="toggleTheme()"></div>
+        <a href="dashboard.html" class="btn btn-ghost btn-sm">Iptal</a>
+      </div>
+    </div>
+
+    <div class="page-body">
+      <div class="steps">
+        <div class="step active"><div class="step-dot">1</div>Rol & Format</div>
+        <div class="step-line"></div>
+        <div class="step active"><div class="step-dot">2</div>Sirket Sec</div>
+        <div class="step-line"></div>
+        <div class="step"><div class="step-dot">3</div>Basla</div>
+      </div>
+
+      <div class="grid" style="grid-template-columns:2.2fr 1fr; gap:24px; align-items:start;">
+        <div>
+          <div class="card fade-up" style="margin-bottom:20px;">
+            <div class="h4" style="margin-bottom:4px;">CV ve Is Ilani</div>
+            <p class="faint" style="font-size:13px; margin-bottom:14px;">AI, sana ozel sorular uretmek icin bunlari kullanir</p>
+            <div class="upload-row">
+              <label class="file-field" id="cvField">
+                <i data-lucide="file-text" style="width:20px; color:var(--indigo);"></i>
+                <div style="font-weight:600; font-size:13px; margin-top:6px;">CV (PDF)</div>
+                <div class="fname" id="cvName">Dosya secilmedi</div>
+                <input type="file" id="cvFile" accept=".pdf,.txt">
+              </label>
+              <label class="file-field" id="jobField">
+                <i data-lucide="briefcase" style="width:20px; color:var(--indigo);"></i>
+                <div style="font-weight:600; font-size:13px; margin-top:6px;">Is Ilani (PDF)</div>
+                <div class="fname" id="jobName">Dosya secilmedi</div>
+                <input type="file" id="jobFile" accept=".pdf,.txt">
+              </label>
+            </div>
+            <textarea class="input" id="jobText" placeholder="...ya da is ilani metnini buraya yapistir (dosya yuklemek zorunlu degil)" style="margin-top:12px; min-height:70px;"></textarea>
+          </div>
+
+          <div class="card fade-up" style="margin-bottom:20px;">
+            <div class="h4" style="margin-bottom:4px;">Pozisyon</div>
+            <p class="faint" style="font-size:13px; margin-bottom:14px;">Hangi rol icin pratik yapmak istiyorsun?</p>
+            <select class="input" id="roleSelect">
+              <option>Backend Developer</option>
+              <option>Frontend Developer</option>
+              <option selected>Full Stack Developer</option>
+              <option>Data Scientist</option>
+              <option>Machine Learning Engineer</option>
+              <option>DevOps Engineer</option>
+              <option>Mobile Developer (iOS/Android)</option>
+              <option>Product Manager</option>
+              <option>System Design / Mimari</option>
+            </select>
+          </div>
+
+          <div class="card fade-up delay-1" style="margin-bottom:20px;">
+            <div class="h4" style="margin-bottom:4px;">Zorluk Seviyesi</div>
+            <p class="faint" style="font-size:13px; margin-bottom:14px;">AI, sorularin zorlugunu buna gore ayarlar</p>
+            <div class="opt-grid" id="diffGrid">
+              <div class="opt-card selected" data-val="junior"><i data-lucide="seedling"></i><div class="opt-title">Junior</div><div class="opt-sub">0-2 yil</div></div>
+              <div class="opt-card" data-val="mid"><i data-lucide="trending-up"></i><div class="opt-title">Mid-level</div><div class="opt-sub">2-5 yil</div></div>
+              <div class="opt-card" data-val="senior"><i data-lucide="crown"></i><div class="opt-title">Senior</div><div class="opt-sub">5+ yil</div></div>
+              <div class="opt-card" data-val="staff"><i data-lucide="gem"></i><div class="opt-title">Staff/Principal</div><div class="opt-sub">8+ yil</div></div>
+            </div>
+          </div>
+
+          <div class="card fade-up delay-2" style="margin-bottom:20px;">
+            <div class="h4" style="margin-bottom:4px;">Mulakat Turu</div>
+            <p class="faint" style="font-size:13px; margin-bottom:14px;">Neye odaklanalim?</p>
+            <div class="opt-grid" id="typeGrid">
+              <div class="opt-card selected" data-val="technical"><i data-lucide="terminal"></i><div class="opt-title">Teknik</div><div class="opt-sub">Kod & kavramlar</div></div>
+              <div class="opt-card" data-val="behavioral"><i data-lucide="message-circle"></i><div class="opt-title">Davranissal</div><div class="opt-sub">STAR yontemi</div></div>
+              <div class="opt-card" data-val="system-design"><i data-lucide="network"></i><div class="opt-title">System Design</div><div class="opt-sub">Mimari</div></div>
+              <div class="opt-card" data-val="mixed"><i data-lucide="shuffle"></i><div class="opt-title">Karisik</div><div class="opt-sub">Hepsinden biraz</div></div>
+            </div>
+          </div>
+
+          <div class="card fade-up delay-3">
+            <div class="flex justify-between items-center" style="margin-bottom:4px;">
+              <div class="h4">Sirket Bazli Mulakat Modu</div>
+              <span class="badge badge-primary">Flagship</span>
+            </div>
+            <p class="faint" style="font-size:13px; margin-bottom:14px;">O sirketin gercek mulakat tarzina, sik sorulan sorularina ve degerlendirme kriterlerine gore AI kisiligi olusturulur</p>
+
+            <div class="company-search">
+              <i data-lucide="search"></i>
+              <input class="input" id="coSearch" placeholder="Sirket ara (orn. Google, ASELSAN, Turkcell...)">
+            </div>
+            <div class="filter-pills" id="coFilters">
+              <div class="pill active" data-cat="all">Tumu</div>
+              <div class="pill" data-cat="tech">Global Teknoloji</div>
+              <div class="pill" data-cat="defense">Savunma Sanayi</div>
+              <div class="pill" data-cat="finance">Bankacilik/Finans</div>
+              <div class="pill" data-cat="telco">Telekom</div>
+            </div>
+            <div class="company-grid" id="companyGrid"></div>
+          </div>
+        </div>
+
+        <div class="summary-card card card-glow fade-up">
+          <div class="h4" style="margin-bottom:14px;">Ozet</div>
+          <div style="font-size:13.5px; line-height:2.1;">
+            <div class="flex justify-between"><span class="muted">Pozisyon</span><span style="font-weight:700;" id="sumRole">Full Stack Developer</span></div>
+            <div class="flex justify-between"><span class="muted">Seviye</span><span style="font-weight:700;" id="sumDiff">Junior</span></div>
+            <div class="flex justify-between"><span class="muted">Tur</span><span style="font-weight:700;" id="sumType">Teknik</span></div>
+            <div class="flex justify-between"><span class="muted">Sirket</span><span style="font-weight:700;" id="sumCo">Secilmedi</span></div>
+            <div class="flex justify-between"><span class="muted">Tahmini Sure</span><span style="font-weight:700;">18-25 dk</span></div>
+          </div>
+          <hr style="border:none; border-top:1px solid var(--border); margin:16px 0;">
+          <div class="flex items-center gap-12" style="margin-bottom:16px;">
+            <div class="feature-icon" style="width:36px; height:36px; margin:0;"><i data-lucide="mic" style="width:16px"></i></div>
+            <div style="font-size:12.5px;"><b>Sesli Mod</b><br><span class="faint">Mikrofonla soyleyerek cevapla</span></div>
+            <div class="switch active" style="margin-left:auto;"></div>
+          </div>
+          <button id="startBtn" class="btn btn-primary" style="width:100%;"><i data-lucide="play" style="width:16px"></i> Mulakati Baslat</button>
+          <div class="setup-error hidden" id="setupError"></div>
+          <p class="faint text-center" style="font-size:11.5px; margin-top:10px;">Gemini AI ile gercek zamanli calisir</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="assets/app.js"></script>
+<script>
+  lucide.createIcons();
+
+  const diffGrid = document.getElementById("diffGrid");
+  const typeGrid = document.getElementById("typeGrid");
+  const sumRole = document.getElementById("sumRole"), sumDiff = document.getElementById("sumDiff"), sumType = document.getElementById("sumType"), sumCo = document.getElementById("sumCo");
+  const labelMap = { junior:"Junior", mid:"Mid-level", senior:"Senior", staff:"Staff/Principal", technical:"Teknik", behavioral:"Davranissal", "system-design":"System Design", mixed:"Karisik" };
+
+  function wireOptGrid(grid, sumEl) {
+    grid.querySelectorAll(".opt-card").forEach(c => c.addEventListener("click", () => {
+      grid.querySelectorAll(".opt-card").forEach(x => x.classList.remove("selected"));
+      c.classList.add("selected");
+      sumEl.textContent = labelMap[c.dataset.val];
+    }));
+  }
+  wireOptGrid(diffGrid, sumDiff);
+  wireOptGrid(typeGrid, sumType);
+  document.getElementById("roleSelect").addEventListener("change", e => sumRole.textContent = e.target.value);
+
+  const grid = document.getElementById("companyGrid");
+  let selectedCo = null, activeCat = "all", query = "";
+
+  function renderCompanies() {
+    grid.innerHTML = "";
+    COMPANIES.filter(c => (activeCat === "all" || c.category === activeCat) && c.name.toLowerCase().includes(query.toLowerCase()))
+      .forEach(c => {
+        const div = document.createElement("div");
+        div.className = "co-tile" + (selectedCo === c.id ? " selected" : "");
+        div.innerHTML = `<div class="co-logo" style="background:${c.color}">${c.initials}</div><div class="co-name">${c.name}</div><div class="co-focus">${c.focus.slice(0,2).join(" · ")}</div>`;
+        div.addEventListener("click", () => { selectedCo = c.id; sumCo.textContent = c.name; renderCompanies(); });
+        grid.appendChild(div);
+      });
+  }
+  renderCompanies();
+
+  document.getElementById("coSearch").addEventListener("input", e => { query = e.target.value; renderCompanies(); });
+  document.getElementById("coFilters").querySelectorAll(".pill").forEach(p => p.addEventListener("click", () => {
+    document.querySelectorAll("#coFilters .pill").forEach(x => x.classList.remove("active"));
+    p.classList.add("active"); activeCat = p.dataset.cat; renderCompanies();
+  }));
+
+  // ---------- Dosya secimleri ----------
+  const cvFile = document.getElementById("cvFile");
+  const jobFile = document.getElementById("jobFile");
+  cvFile.addEventListener("change", () => {
+    document.getElementById("cvName").textContent = cvFile.files[0] ? cvFile.files[0].name : "Dosya secilmedi";
+  });
+  jobFile.addEventListener("change", () => {
+    document.getElementById("jobName").textContent = jobFile.files[0] ? jobFile.files[0].name : "Dosya secilmedi";
+  });
+
+  // ---------- Gercek backend'e baglanma ----------
+  const API = "";
+
+  async function errorFromResponse(r, fallback) {
+    let bodyText = "";
+    try { bodyText = await r.text(); } catch (_) {}
+    try {
+      const data = JSON.parse(bodyText);
+      if (data && data.detail) return data.detail;
+    } catch (_) {}
+    if (bodyText && bodyText.length < 300) return bodyText;
+    return `${fallback} (HTTP ${r.status})`;
+  }
+
+  function showSetupError(msg) {
+    const el = document.getElementById("setupError");
+    el.textContent = msg;
+    el.classList.remove("hidden");
+  }
+
+  document.getElementById("startBtn").addEventListener("click", async () => {
+    const errEl = document.getElementById("setupError");
+    errEl.classList.add("hidden");
+
+    const cv = cvFile.files[0];
+    const job = jobFile.files[0];
+    const jobText = document.getElementById("jobText").value.trim();
+
+    if (!cv) return showSetupError("Lutfen CV dosyani (PDF) yukle.");
+    if (!job && !jobText) return showSetupError("Lutfen is ilani dosyasi yukle ya da metin yapistir.");
+
+    const diffCard = diffGrid.querySelector(".opt-card.selected");
+    const typeCard = typeGrid.querySelector(".opt-card.selected");
+    const selectedCompany = COMPANIES.find(c => c.id === selectedCo);
+
+    const btn = document.getElementById("startBtn");
+    btn.disabled = true;
+    btn.textContent = "Hazirlaniyor...";
+
+    try {
+      let r = await fetch(`${API}/api/session`, { method: "POST" });
+      if (!r.ok) throw new Error(await errorFromResponse(r, "Oturum olusturulamadi"));
+      const { session_id } = await r.json();
+
+      const cvForm = new FormData();
+      cvForm.append("session_id", session_id);
+      cvForm.append("file", cv);
+      r = await fetch(`${API}/api/upload-cv`, { method: "POST", body: cvForm });
+      if (!r.ok) throw new Error(await errorFromResponse(r, "CV yuklenemedi"));
+
+      const jobForm = new FormData();
+      jobForm.append("session_id", session_id);
+      if (job) jobForm.append("file", job);
+      if (jobText) jobForm.append("job_text", jobText);
+      r = await fetch(`${API}/api/upload-job`, { method: "POST", body: jobForm });
+      if (!r.ok) throw new Error(await errorFromResponse(r, "Is ilani yuklenemedi"));
+
+      const startForm = new FormData();
+      startForm.append("session_id", session_id);
+      if (selectedCompany) startForm.append("company_id", selectedCompany.id);
+      startForm.append("role", document.getElementById("roleSelect").value);
+      startForm.append("difficulty", labelMap[diffCard.dataset.val]);
+      startForm.append("interview_type", labelMap[typeCard.dataset.val]);
+      startForm.append("total_questions", "4");
+      r = await fetch(`${API}/api/start`, { method: "POST", body: startForm });
+      if (!r.ok) throw new Error(await errorFromResponse(r, "Mulakat baslatilamadi"));
+      const q = await r.json();
+
+      sessionStorage.setItem("ip_session_id", session_id);
+      sessionStorage.setItem("ip_first_question", JSON.stringify(q));
+      sessionStorage.setItem("ip_meta", JSON.stringify({
+        company: selectedCompany ? selectedCompany.name : null,
+        role: document.getElementById("roleSelect").value,
+        difficulty: labelMap[diffCard.dataset.val],
+        type: labelMap[typeCard.dataset.val],
+        typeKey: typeCard.dataset.val,
+      }));
+
+      window.location.href = "interview-room.html";
+    } catch (e) {
+      showSetupError(e.message);
+      btn.disabled = false;
+      btn.innerHTML = '<i data-lucide="play" style="width:16px"></i> Mulakati Baslat';
+      lucide.createIcons();
+    }
+  });
+</script>
+</body>
+</html>

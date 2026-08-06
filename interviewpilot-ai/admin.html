@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Panel — InterviewPilot AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Manrope:wght@700;800&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+
+<link rel="stylesheet" href="assets/style.css">
+<style>
+
+  .admin-row { display:grid; grid-template-columns:1fr 1fr 1fr 100px; align-items:center; gap:14px; padding:12px 6px; border-bottom:1px solid var(--border); font-size:13.5px; }
+  
+</style>
+</head>
+<body>
+<div class="app-shell">
+<aside class="sidebar">
+  <div class="brand" style="padding:10px 10px 18px;"><div class="brand-mark">IP</div>InterviewPilot</div>
+  <a class="side-link" href="dashboard.html"><span class="icon-box"><i data-lucide="layout-dashboard" style="width:17px"></i></span>Dashboard</a>
+  <a class="side-link" href="interview-setup.html"><span class="icon-box"><i data-lucide="play-circle" style="width:17px"></i></span>Yeni Mulakat</a>
+  <a class="side-link" href="history.html"><span class="icon-box"><i data-lucide="history" style="width:17px"></i></span>Gecmis</a>
+  <a class="side-link" href="analytics.html"><span class="icon-box"><i data-lucide="bar-chart-3" style="width:17px"></i></span>Analitik</a>
+  <a class="side-link" href="roadmap.html"><span class="icon-box"><i data-lucide="map" style="width:17px"></i></span>Yol Haritasi</a>
+  <div class="sidebar-section-label">Kariyer</div>
+  <a class="side-link" href="resume-analysis.html"><span class="icon-box"><i data-lucide="file-search" style="width:17px"></i></span>CV Analizi</a>
+  <a class="side-link" href="job-match.html"><span class="icon-box"><i data-lucide="target" style="width:17px"></i></span>Is Uyumu</a>
+  <a class="side-link" href="career-coach.html"><span class="icon-box"><i data-lucide="compass" style="width:17px"></i></span>AI Kariyer Kocu</a>
+  <a class="side-link" href="portfolio.html"><span class="icon-box"><i data-lucide="github" style="width:17px"></i></span>Portfolyo</a>
+  <div class="sidebar-section-label">Topluluk</div>
+  <a class="side-link" href="leaderboard.html"><span class="icon-box"><i data-lucide="trophy" style="width:17px"></i></span>Liderlik Tablosu</a>
+  <a class="side-link" href="challenges.html"><span class="icon-box"><i data-lucide="swords" style="width:17px"></i></span>Gunluk Meydan Okuma</a>
+  <div class="sidebar-section-label">Hesap</div>
+  <a class="side-link" href="profile.html"><span class="icon-box"><i data-lucide="user" style="width:17px"></i></span>Profil</a>
+  <a class="side-link active" href="admin.html"><span class="icon-box"><i data-lucide="shield" style="width:17px"></i></span>Admin Panel</a>
+</aside>
+  <div class="main-content">
+    <div class="topbar">
+      <div><div class="h4">Admin Panel</div><div class="faint" style="font-size:13px;">Platform yonetimi (demo — sadece goruntuleme)</div></div>
+      <div class="flex items-center gap-12">
+        <div class="switch theme-switch" onclick="toggleTheme()"></div>
+        
+      </div>
+    </div>
+    <div class="page-body">
+      <div class="grid kpi-grid" style="grid-template-columns:repeat(4,1fr);">
+        <div class="card kpi-card"><div class="kpi-label">Toplam Kullanici</div><div class="kpi-value">12.480</div></div>
+        <div class="card kpi-card"><div class="kpi-label">Aktif Bugun</div><div class="kpi-value">1.920</div></div>
+        <div class="card kpi-card"><div class="kpi-label">Toplam Mulakat</div><div class="kpi-value">88.300</div></div>
+        <div class="card kpi-card"><div class="kpi-label">AI Maliyeti (Ay)</div><div class="kpi-value">$1.240</div></div>
+      </div>
+      <div class="card fade-up" style="margin-top:20px;">
+        <div class="h4" style="margin-bottom:8px;">AI Model Konfigurasyonu</div>
+        <div class="settings-row" style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--border);"><span class="muted">Aktif Model</span><span class="tag">gemini-2.0-flash</span></div>
+        <div class="settings-row" style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--border);"><span class="muted">Gunluk Istek Limiti</span><span style="font-weight:600;">20.000</span></div>
+        <div class="settings-row" style="display:flex; justify-content:space-between; padding:10px 0;"><span class="muted">Bugun Kullanilan</span><span style="font-weight:600;">14.220 (%71)</span></div>
+      </div>
+      <div class="card fade-up" style="margin-top:20px;">
+        <div class="h4" style="margin-bottom:8px;">Son Kayitlar</div>
+        <div class="admin-row" style="font-weight:700; color:var(--text-faint); font-size:12px; text-transform:uppercase;"><span>Kullanici</span><span>E-posta</span><span>Kayit Tarihi</span><span>Durum</span></div>
+        <div class="admin-row"><span>Can K.</span><span class="faint">can@ornek.com</span><span class="faint">2 saat once</span><span class="badge badge-success">Aktif</span></div>
+        <div class="admin-row"><span>Selin D.</span><span class="faint">selin@ornek.com</span><span class="faint">5 saat once</span><span class="badge badge-success">Aktif</span></div>
+        <div class="admin-row"><span>Emine T.</span><span class="faint">eminetekdemir8821@gmail.com</span><span class="faint">1 gun once</span><span class="badge badge-success">Aktif</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="assets/app.js"></script>
+<script>
+  lucide.createIcons();
+
+</script>
+</body>
+</html>

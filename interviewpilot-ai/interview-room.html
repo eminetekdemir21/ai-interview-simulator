@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mulakat Odasi — InterviewPilot AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Manrope:wght@700;800&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<link rel="stylesheet" href="assets/style.css">
+<style>
+  body { background: var(--bg); overflow: hidden; }
+  .room-shell { height: 100vh; display: flex; flex-direction: column; }
+  .room-top { display:flex; align-items:center; justify-content:space-between; padding:14px 24px; border-bottom:1px solid var(--border); background:var(--surface); }
+  .room-timer { font-weight:800; font-family:monospace; font-size:15px; display:flex; align-items:center; gap:6px; }
+  .room-body { flex:1; display:grid; grid-template-columns: 1fr 360px; overflow:hidden; }
+  .stage { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:32px; position:relative; }
+  .ai-avatar-wrap { position:relative; width:220px; height:220px; }
+  .ai-avatar { width:220px; height:220px; border-radius:50%; background:var(--grad-brand); display:flex; align-items:center; justify-content:center; box-shadow:0 20px 60px rgba(99,102,241,.35); }
+  .ai-avatar i { width:90px; height:90px; color:#fff; }
+  .ring { position:absolute; inset:-14px; border-radius:50%; border:2px solid rgba(99,102,241,.35); animation: ring-pulse 2.4s ease-out infinite; }
+  .ring.r2 { animation-delay: .8s; }
+  .ring.r3 { animation-delay: 1.6s; }
+  @keyframes ring-pulse { 0% { transform:scale(.9); opacity:.7; } 100% { transform:scale(1.35); opacity:0; } }
+  .speaking-dot { width:10px; height:10px; border-radius:50%; background:var(--success); display:inline-block; animation: blink 1.4s infinite; }
+  @keyframes blink { 0%,100% { opacity:1; } 50% { opacity:.3; } }
+  .question-bubble { max-width:640px; margin-top:36px; background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:22px 26px; box-shadow:var(--shadow-md); }
+  .waveform { display:flex; align-items:center; gap:3px; height:28px; margin-top:18px; }
+  .wf-bar { width:3px; background:var(--indigo); border-radius:2px; animation: wf 1.2s ease-in-out infinite; }
+  @keyframes wf { 0%,100% { height:6px; } 50% { height:26px; } }
+  .answer-panel { border-top:1px solid var(--border); background:var(--surface); padding:20px 32px; }
+  .answer-box { width:100%; min-height:90px; border:1.5px solid var(--border); border-radius:14px; padding:14px; font-family:inherit; font-size:14.5px; resize:vertical; background:var(--surface-2); color:var(--text); }
+  .answer-box:focus { outline:none; border-color:var(--indigo); }
+  .controls-row { display:flex; align-items:center; gap:10px; margin-top:14px; }
+  .mic-btn { width:52px; height:52px; border-radius:50%; background:var(--grad-brand); color:#fff; display:flex; align-items:center; justify-content:center; border:none; cursor:pointer; box-shadow:0 6px 20px rgba(99,102,241,.35); }
+  .mic-btn.recording { animation: mic-pulse 1.2s infinite; }
+  @keyframes mic-pulse { 0%,100% { box-shadow:0 0 0 0 rgba(239,68,68,.5); } 50% { box-shadow:0 0 0 12px rgba(239,68,68,0); } }
+  .side-panel { border-left:1px solid var(--border); background:var(--surface); display:flex; flex-direction:column; overflow:hidden; }
+  .side-tabs { display:flex; border-bottom:1px solid var(--border); }
+  .side-tab { flex:1; text-align:center; padding:12px; font-size:13px; font-weight:700; color:var(--text-faint); cursor:pointer; border-bottom:2px solid transparent; }
+  .side-tab.active { color:var(--indigo); border-color:var(--indigo); }
+  .transcript { flex:1; overflow-y:auto; padding:18px; }
+  .msg { margin-bottom:16px; font-size:13.5px; line-height:1.6; }
+  .msg .who { font-weight:800; font-size:11.5px; text-transform:uppercase; letter-spacing:.04em; margin-bottom:4px; }
+  .msg.ai .who { color:var(--indigo-600); }
+  .msg.user .who { color:var(--text-faint); }
+  .msg-score { display:inline-block; margin-top:6px; }
+  .room-error { max-width:640px; margin-top:14px; background:var(--danger-soft); color:var(--danger); border-radius:12px; padding:12px 16px; font-size:13.5px; }
+  .room-loading { display:flex; align-items:center; gap:8px; margin-top:14px; font-size:13px; color:var(--text-faint); }
+  .next-row { display:flex; justify-content:flex-end; margin-top:10px; }
+</style>
+</head>
+<body>
+<div class="room-shell">
+  <div class="room-top">
+    <div class="flex items-center gap-16">
+      <div class="brand-mark" style="width:32px; height:32px; font-size:13px;">IP</div>
+      <div>
+        <div style="font-weight:700; font-size:14px;" id="roomTitle">Mulakat</div>
+        <div class="faint" style="font-size:12px;" id="roomSubtitle">Hazirlaniyor...</div>
+      </div>
+    </div>
+    <div class="flex items-center gap-16">
+      <div class="tag">Soru <span id="qNum">-</span> / <span id="qTotal">-</span></div>
+      <div class="room-timer"><i data-lucide="clock" style="width:15px"></i> <span id="timer">00:00</span></div>
+      <button class="btn btn-secondary btn-sm" id="hintBtn"><i data-lucide="lightbulb" style="width:14px"></i> Ipucu</button>
+      <button class="btn" style="background:var(--danger-soft); color:var(--danger); border:none;" id="endBtn"><i data-lucide="phone-off" style="width:14px"></i> Bitir</button>
+    </div>
+  </div>
+
+  <div class="room-body">
+    <div class="stage">
+      <div class="ai-avatar-wrap">
+        <div class="ring"></div><div class="ring r2"></div><div class="ring r3"></div>
+        <div class="ai-avatar"><i data-lucide="bot"></i></div>
+      </div>
+      <div class="flex items-center gap-8" style="margin-top:16px; font-size:13px; font-weight:700; color:var(--success);" id="statusLine">
+        <span class="speaking-dot"></span> Soru hazirlaniyor...
+      </div>
+      <div class="waveform" id="waveform"></div>
+
+      <div class="question-bubble">
+        <div class="eyebrow" style="margin-bottom:8px;" id="qEyebrow">Soru</div>
+        <p style="font-size:16.5px; font-weight:600; line-height:1.5;" id="qText">Yukleniyor...</p>
+      </div>
+      <div class="room-error hidden" id="roomError"></div>
+      <div class="next-row hidden" id="nextRow">
+        <button class="btn btn-primary" id="nextBtn">Sonraki Soru <i data-lucide="arrow-right" style="width:15px"></i></button>
+      </div>
+    </div>
+
+    <div class="side-panel">
+      <div class="side-tabs">
+        <div class="side-tab active" data-tab="transcript">Transkript</div>
+        <div class="side-tab" data-tab="notes">AI Notlari</div>
+      </div>
+      <div class="transcript" id="transcriptTab"></div>
+      <div class="transcript" id="notesTab" style="display:none;">
+        <p class="faint" style="font-size:12.5px;">Mulakat bittiginde guclu/zayif yonlerin burada ve sonuc raporunda gorunecek.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="answer-panel">
+    <textarea class="answer-box" id="answerBox" placeholder="Cevabini buraya yaz..."></textarea>
+    <div class="controls-row">
+      <button class="mic-btn" id="micBtn" title="Sesli giris bu demoda pasif, metinle cevapla"><i data-lucide="mic" style="width:22px"></i></button>
+      <button class="btn btn-secondary btn-sm" id="skipBtn"><i data-lucide="skip-forward" style="width:14px"></i> Atla</button>
+      <div style="flex:1;"></div>
+      <span class="faint" style="font-size:12px;" id="charCount">0 karakter</span>
+      <button class="btn btn-primary" id="submitBtn">Cevabi Gonder <i data-lucide="arrow-right" style="width:15px"></i></button>
+    </div>
+  </div>
+</div>
+
+<script src="assets/app.js"></script>
+<script>
+  const API = "";
+  lucide.createIcons();
+
+  const wf = document.getElementById("waveform");
+  for (let i = 0; i < 28; i++) {
+    const bar = document.createElement("div");
+    bar.className = "wf-bar";
+    bar.style.animationDelay = (Math.random() * 1.2).toFixed(2) + "s";
+    wf.appendChild(bar);
+  }
+
+  document.querySelectorAll(".side-tab").forEach(t => t.addEventListener("click", () => {
+    document.querySelectorAll(".side-tab").forEach(x => x.classList.remove("active"));
+    t.classList.add("active");
+    document.getElementById("transcriptTab").style.display = t.dataset.tab === "transcript" ? "block" : "none";
+    document.getElementById("notesTab").style.display = t.dataset.tab === "notes" ? "block" : "none";
+  }));
+
+  const answerBox = document.getElementById("answerBox");
+  answerBox.addEventListener("input", () => document.getElementById("charCount").textContent = answerBox.value.length + " karakter");
+
+  const micBtn = document.getElementById("micBtn");
+  micBtn.addEventListener("click", () => micBtn.classList.toggle("recording"));
+
+  async function errorFromResponse(r, fallback) {
+    let bodyText = "";
+    try { bodyText = await r.text(); } catch (_) {}
+    try {
+      const data = JSON.parse(bodyText);
+      if (data && data.detail) return data.detail;
+    } catch (_) {}
+    if (bodyText && bodyText.length < 300) return bodyText;
+    return `${fallback} (HTTP ${r.status})`;
+  }
+
+  function showRoomError(msg) {
+    const el = document.getElementById("roomError");
+    el.textContent = msg;
+    el.classList.remove("hidden");
+  }
+  function hideRoomError() {
+    document.getElementById("roomError").classList.add("hidden");
+  }
+
+  function addMsg(who, text, scoreBadge) {
+    const t = document.getElementById("transcriptTab");
+    const div = document.createElement("div");
+    div.className = "msg " + (who === "ai" ? "ai" : "user");
+    const label = who === "ai" ? "AI Mulakatci" : who === "eval" ? "Degerlendirme" : "Sen";
+    div.innerHTML = `<div class="who">${label}</div>${text}` + (scoreBadge ? `<div class="msg-score"><span class="badge badge-success">${scoreBadge}/100</span></div>` : "");
+    t.appendChild(div);
+    t.scrollTop = t.scrollHeight;
+  }
+
+  // ---------- Oturum verisi ----------
+  const sessionId = sessionStorage.getItem("ip_session_id");
+  const meta = JSON.parse(sessionStorage.getItem("ip_meta") || "{}");
+  let currentQ = JSON.parse(sessionStorage.getItem("ip_first_question") || "null");
+
+  if (!sessionId || !currentQ) {
+    // Dogrudan bu sayfaya gelinmis, once kurulum yapilmali
+    window.location.href = "interview-setup.html";
+  } else {
+    document.getElementById("roomTitle").textContent = [meta.company, meta.role].filter(Boolean).join(" — ") || "Mulakat";
+    document.getElementById("roomSubtitle").textContent = [meta.type, meta.difficulty].filter(Boolean).join(" · ") || "";
+    renderQuestion(currentQ);
+    addMsg("ai", currentQ.question);
+  }
+
+  function renderQuestion(q) {
+    document.getElementById("qNum").textContent = q.question_number;
+    document.getElementById("qTotal").textContent = q.total_questions;
+    document.getElementById("qEyebrow").textContent = `Soru ${q.question_number}`;
+    document.getElementById("qText").textContent = q.question;
+    document.getElementById("statusLine").innerHTML = '<span class="speaking-dot"></span> AI konusuyor...';
+    answerBox.value = "";
+    answerBox.disabled = false;
+    answerBox.classList.remove("hidden");
+    document.getElementById("submitBtn").classList.remove("hidden");
+    document.getElementById("submitBtn").disabled = false;
+    document.getElementById("skipBtn").disabled = false;
+    document.getElementById("nextRow").classList.add("hidden");
+    document.getElementById("charCount").textContent = "0 karakter";
+    hideRoomError();
+  }
+
+  async function submitAnswer(answerText) {
+    hideRoomError();
+    const submitBtn = document.getElementById("submitBtn");
+    submitBtn.disabled = true;
+    document.getElementById("skipBtn").disabled = true;
+    submitBtn.textContent = "Degerlendiriliyor...";
+    document.getElementById("statusLine").innerHTML = '<span class="speaking-dot"></span> AI cevabini degerlendiriyor...';
+
+    addMsg("user", answerText || "(bos birakildi)");
+
+    try {
+      const r = await fetch(`${API}/api/answer`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ session_id: sessionId, answer: answerText }),
+      });
+      if (!r.ok) throw new Error(await errorFromResponse(r, "Cevap degerlendirilemedi"));
+      const data = await r.json();
+
+      addMsg("eval", data.feedback + (data.missing_points ? `<br><span class="faint">Eksik: ${data.missing_points}</span>` : ""), data.score);
+
+      answerBox.disabled = true;
+      answerBox.classList.add("hidden");
+      submitBtn.classList.add("hidden");
+
+      if (data.finished) {
+        document.getElementById("statusLine").textContent = "Mulakat tamamlandi 🎉";
+        document.getElementById("nextRow").classList.remove("hidden");
+        const nextBtn = document.getElementById("nextBtn");
+        nextBtn.textContent = "Sonucu Gor";
+        nextBtn.onclick = () => { window.location.href = "report.html"; };
+      } else {
+        currentQ = {
+          question: data.next_question,
+          question_number: data.question_number + 1,
+          total_questions: data.total_questions,
+        };
+        document.getElementById("nextRow").classList.remove("hidden");
+        const nextBtn = document.getElementById("nextBtn");
+        nextBtn.textContent = "Sonraki Soru";
+        nextBtn.onclick = () => {
+          renderQuestion(currentQ);
+          addMsg("ai", currentQ.question);
+        };
+      }
+    } catch (e) {
+      showRoomError(e.message);
+      submitBtn.disabled = false;
+      document.getElementById("skipBtn").disabled = false;
+      submitBtn.textContent = "Cevabi Gonder";
+      document.getElementById("statusLine").innerHTML = '<span class="speaking-dot"></span> AI konusuyor...';
+    }
+  }
+
+  document.getElementById("submitBtn").addEventListener("click", () => {
+    const answer = answerBox.value.trim();
+    if (!answer) { showRoomError("Lutfen bir cevap yaz."); return; }
+    submitAnswer(answer);
+  });
+
+  document.getElementById("skipBtn").addEventListener("click", () => {
+    submitAnswer("(Aday bu soruyu atladi)");
+  });
+
+  const hints = {
+    "technical": "Cevabina somut bir ornek veya kisisel bir proje deneyimi ekle, sadece tanim yapma.",
+    "behavioral": "STAR yontemini kullan: Durum, Gorev, Aksiyon, Sonuc sirasiyla anlat.",
+    "system-design": "Once gereksinimleri netlestir, sonra yuksek seviye mimariyi cizerek anlat.",
+    "mixed": "Once kisa ve net bir cevap ver, sonra ornekle derinlestir.",
+  };
+  document.getElementById("hintBtn").addEventListener("click", () => {
+    alert(hints[meta.typeKey] || "Cevabini somut ornekler ve kisa, net cumlelerle destekle.");
+  });
+
+  document.getElementById("endBtn").addEventListener("click", () => {
+    if (confirm("Mulakati simdi bitirmek istedigine emin misin? Tamamlanmamis mulakatlar rapor olarak kaydedilmez.")) {
+      sessionStorage.removeItem("ip_session_id");
+      window.location.href = "dashboard.html";
+    }
+  });
+
+  const startedAt = Date.now();
+  setInterval(() => {
+    const secs = Math.floor((Date.now() - startedAt) / 1000);
+    const m = String(Math.floor(secs / 60)).padStart(2, "0");
+    const s = String(secs % 60).padStart(2, "0");
+    document.getElementById("timer").textContent = `${m}:${s}`;
+  }, 1000);
+</script>
+</body>
+</html>

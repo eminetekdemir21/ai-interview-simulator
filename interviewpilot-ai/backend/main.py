@@ -10,6 +10,7 @@ from fastapi.responses import FileResponse, Response
 
 from pdf_utils import extract_text_from_pdf
 from session_store import store, QARecord
+from companies import get_company
 import gemini_client as gc
 import history_store
 import pdf_report
@@ -21,7 +22,7 @@ from models import (
     QAItem,
 )
 
-app = FastAPI(title="AI Interview Simulator")
+app = FastAPI(title="InterviewPilot AI")
 
 app.add_middleware(
     CORSMiddleware,
@@ -29,6 +30,18 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+def _session_context(session) -> dict:
+    """Session'daki sirket/rol/seviye secimlerini gemini_client'in
+    bekledigi baglam sozlugune cevirir."""
+    return {
+        "company_name": session.company_name,
+        "style_hint": get_company(session.company_id)["style_hint"] if session.company_id and get_company(session.company_id) else None,
+        "role": session.role,
+        "difficulty": session.difficulty,
+        "interview_type": session.interview_type,
+    }
 
 
 @app.post("/api/session")
@@ -79,15 +92,38 @@ async def upload_job(
 
 
 @app.post("/api/start", response_model=QuestionOut)
-def start_interview(session_id: str = Form(...)):
+def start_interview(
+    session_id: str = Form(...),
+    company_id: str | None = Form(None),
+    role: str | None = Form(None),
+    difficulty: str | None = Form(None),
+    interview_type: str | None = Form(None),
+    total_questions: int | None = Form(None),
+):
     session = store.get(session_id)
     if not session:
         raise HTTPException(404, "Oturum bulunamadi")
     if not session.cv_text or not session.job_text:
         raise HTTPException(400, "Once CV ve is ilani yuklenmeli")
 
+    # Sirket Bazli Mulakat Modu secimleri (hepsi opsiyonel; secilmezse
+    # genel/CV+is ilani tabanli mod calisir).
+    if company_id:
+        company = get_company(company_id)
+        if not company:
+            raise HTTPException(400, "Gecersiz sirket secimi")
+        session.company_id = company_id
+        session.company_name = company["name"]
+    session.role = role
+    session.difficulty = difficulty
+    session.interview_type = interview_type
+    if total_questions:
+        session.total_questions = max(1, min(total_questions, 8))
+
     try:
-        question = gc.generate_next_question(session.cv_text, session.job_text, session.history)
+        question = gc.generate_next_question(
+            session.cv_text, session.job_text, session.history, _session_context(session)
+        )
     except Exception as e:
         raise HTTPException(502, gc.friendly_error(e))
     session.history.append(QARecord(question))
@@ -112,17 +148,15 @@ def submit_answer(payload: AnswerIn):
     current.answer = payload.answer
 
     try:
-        eval_result = gc.evaluate_answer(current.question, payload.answer, session.job_text)
+        eval_result = gc.evaluate_answer(current.question, payload.answer, session.job_text, _session_context(session))
     except Exception as e:
         raise HTTPException(502, gc.friendly_error(e))
     current.score = eval_result["score"]
     current.feedback = eval_result["feedback"]
     current.missing_points = eval_result["missing_points"]
 
-    # Onemli: session.current_index, history uzunluguna gore dinamik hesaplaniyor.
-    # Asagida yeni soru history'ye eklenmeden ONCE degerini yakalamamiz lazim,
-    # yoksa "cevaplanan soru numarasi" yanlislikla bir sonraki sorunun
-    # numarasi olur (frontend +1 daha ekleyince soru 1'den 3'e atlar).
+    # Onemli: session.current_index history uzunluguna gore dinamik
+    # hesaplaniyor; yeni soru eklenmeden ONCE degerini yakalamamiz lazim.
     answered_number = session.current_index
     finished = answered_number >= session.total_questions
     next_question = None
@@ -131,7 +165,9 @@ def submit_answer(payload: AnswerIn):
         session.finished = True
     else:
         try:
-            next_question = gc.generate_next_question(session.cv_text, session.job_text, session.history)
+            next_question = gc.generate_next_question(
+                session.cv_text, session.job_text, session.history, _session_context(session)
+            )
         except Exception as e:
             raise HTTPException(502, gc.friendly_error(e))
         session.history.append(QARecord(next_question))
@@ -155,21 +191,24 @@ def get_result(session_id: str):
     if not session.finished:
         raise HTTPException(400, "Mulakat henuz tamamlanmadi")
 
-    # Bu mulakat daha once rapor uretilip gecmise kaydedildiyse, Gemini'yi
-    # tekrar cagirmak yerine kayitli raporu kullan (kota tasarrufu + sonuc
-    # sayfasi yeniden yuklendiginde ayni raporun gorunmesini saglar).
     cached = history_store.get_record(session_id)
     if cached:
         return FinalReportOut(
             overall_score=cached["overall_score"],
+            sub_scores=cached.get("sub_scores") or {},
             strengths=cached["strengths"],
             weaknesses=cached["weaknesses"],
             summary=cached["summary"],
             history=[QAItem(**qa) for qa in cached["history"]],
+            company_id=cached.get("company_id"),
+            company_name=cached.get("company_name"),
+            role=cached.get("role"),
+            difficulty=cached.get("difficulty"),
+            interview_type=cached.get("interview_type"),
         )
 
     try:
-        report = gc.generate_final_report(session.cv_text, session.job_text, session.history)
+        report = gc.generate_final_report(session.cv_text, session.job_text, session.history, _session_context(session))
     except Exception as e:
         raise HTTPException(502, gc.friendly_error(e))
 
@@ -177,30 +216,48 @@ def get_result(session_id: str):
         QAItem(question=qa.question, answer=qa.answer, score=qa.score, feedback=qa.feedback)
         for qa in session.history
     ]
+    sub_scores = report.get("sub_scores") or {}
 
     history_store.add_record({
         "id": session_id,
         "overall_score": report["overall_score"],
+        "sub_scores": sub_scores,
         "strengths": report["strengths"],
         "weaknesses": report["weaknesses"],
         "summary": report["summary"],
         "history": [qa.model_dump() for qa in history_out],
         "job_preview": session.job_text[:300],
+        "company_id": session.company_id,
+        "company_name": session.company_name,
+        "role": session.role,
+        "difficulty": session.difficulty,
+        "interview_type": session.interview_type,
     })
 
     return FinalReportOut(
         overall_score=report["overall_score"],
+        sub_scores=sub_scores,
         strengths=report["strengths"],
         weaknesses=report["weaknesses"],
         summary=report["summary"],
         history=history_out,
+        company_id=session.company_id,
+        company_name=session.company_name,
+        role=session.role,
+        difficulty=session.difficulty,
+        interview_type=session.interview_type,
     )
 
 
 @app.get("/api/history")
 def list_history():
-    """Gecmis tum mulakatlarin ozet listesi (en yeni once)."""
     return history_store.list_records()
+
+
+@app.get("/api/history/stats")
+def get_history_stats():
+    """Dashboard KPI'lari icin gercek verilerden hesaplanan ozet."""
+    return history_store.stats()
 
 
 @app.get("/api/history/{item_id}")
@@ -225,11 +282,24 @@ def get_history_pdf(item_id: str):
     )
 
 
-# Frontend'i sun
-frontend_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend")
+@app.get("/api/companies")
+def list_companies():
+    from companies import COMPANIES
+    return [{"id": cid, **data} for cid, data in COMPANIES.items()]
+
+
+# Frontend'i (interviewpilot-ai/ altindaki tum statik sayfalar) sun
+frontend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if os.path.isdir(frontend_dir):
-    app.mount("/static", StaticFiles(directory=frontend_dir), name="static")
+    app.mount("/assets", StaticFiles(directory=os.path.join(frontend_dir, "assets")), name="assets")
 
     @app.get("/")
     def serve_index():
         return FileResponse(os.path.join(frontend_dir, "index.html"))
+
+    @app.get("/{page_name}.html")
+    def serve_page(page_name: str):
+        path = os.path.join(frontend_dir, f"{page_name}.html")
+        if os.path.isfile(path):
+            return FileResponse(path)
+        raise HTTPException(404, "Sayfa bulunamadi")

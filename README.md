@@ -11,6 +11,9 @@ bir skor (orn. 78/100) ve guclu/zayif yon raporu alirsin.
 - CV + is ilanina gore kisisellestirilmis, birbirini takip eden teknik sorular
 - Her cevap icin 0-100 puan + geri bildirim + eksik nokta tespiti
 - Mulakat sonunda genel skor, guclu/zayif yonler ve ozet degerlendirme
+- Tamamlanan mulakatlar otomatik olarak gecmise kaydedilir (`backend/data/history.json`)
+  ve "📚 Geçmiş Mülakatlarım" ekranindan tekrar goruntulenebilir
+- Sonuc raporu tek tikla PDF olarak indirilebilir (Turkce karakter destekli)
 - Basit, tek sayfalik web arayuzu
 
 ## Kurulum
@@ -69,25 +72,44 @@ ai_interview_simulator/
   backend/
     main.py            FastAPI uygulamasi ve API endpoint'leri
     gemini_client.py    Gemini API ile soru uretme / degerlendirme
-    pdf_utils.py         PDF -> metin cikarma
-    session_store.py     Bellek ici oturum yonetimi
+    pdf_utils.py         PDF -> metin cikarma (CV/is ilani okuma)
+    pdf_report.py         Sonuc raporunu indirilebilir PDF'e cevirir
+    session_store.py     Bellek ici oturum yonetimi (aktif mulakat)
+    history_store.py      Tamamlanmis mulakatlarin JSON'a kaydedilmesi
     models.py             Pydantic veri modelleri
+    fonts/                PDF'lerde Turkce karakterler icin DejaVu Sans fontu
+    data/                 (otomatik olusur) gecmis mulakat kayitlari, git'e girmez
   frontend/
     index.html            Tek sayfalik arayuz
   requirements.txt
   .env.example
 ```
 
+## API Uc Noktalari (ozet)
+
+- `POST /api/session`, `/api/upload-cv`, `/api/upload-job`, `/api/start`, `/api/answer` — mevcut mulakat akisi
+- `GET /api/result/{session_id}` — final raporu getirir (ilk cagrida uretir ve gecmise kaydeder, sonrakilerde kayittan doner)
+- `GET /api/history` — tamamlanmis tum mulakatlarin ozet listesi
+- `GET /api/history/{id}` — bir kaydin tam raporu
+- `GET /api/history/{id}/pdf` — o kaydi PDF olarak indirir
+
 ## Onemli Notlar
 
-- Oturumlar bellekte tutulur; sunucu yeniden baslatilinca mulakat gecmisi
-  silinir. Kalici hale getirmek istersen `session_store.py`'yi bir
-  veritabanina (orn. SQLite) baglayabilirsin — bu da uzerine eklenebilecek
-  guzel bir gelistirme fikri.
+- Aktif (devam eden) mulakat oturumlari hala bellekte tutulur; sunucu
+  yeniden baslatilinca yarim kalmis bir mulakat silinir. Ama **tamamlanmis**
+  mulakatlar artik `backend/data/history.json` dosyasina kaydedilir ve
+  sunucu yeniden baslasa da kaybolmaz.
+- `backend/data/` klasoru kisisel CV/mulakat icerigi barindirdigi icin
+  `.gitignore` ile git'e dahil edilmez — GitHub'a pushlarken bu veriler
+  paylasilmaz.
+- PDF raporlar `backend/fonts/` altindaki DejaVu Sans fontuyla uretilir, bu
+  yuzden Turkce karakterler (ı, ş, ğ, ç, ö, ü) PDF'te dogru gorunur; ayrica
+  kullanicinin bilgisayarinda ekstra font kurulumu gerekmez.
 - Gemini'nin ucretsiz katmani dakikada/gunde belirli sayida istekle
   sinirlidir; yogun test sirasinda "rate limit" hatasi alirsan birkac saniye
-  bekleyip tekrar dene.
+  bekleyip tekrar dene. Sonuc ekrani artik kayitli raporu tekrar kullandigi
+  icin, sayfayi yenilemek ekstra Gemini istegi harcamaz.
 - Gelistirme fikirleri (staj sunumunda "gelecek adimlar" olarak da
   gosterebilirsin): sesli mulakat (Whisper + TTS), coklu is ilani/rol
-  secenegi, PDF rapor ciktisi, kullanici hesaplari ve gecmis mulakatlari
-  karsilastirma.
+  secenegi, kullanici hesaplari ve gecmis mulakatlari karsilastirmali
+  analitik.
