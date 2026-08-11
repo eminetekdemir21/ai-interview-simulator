@@ -22,3 +22,6 @@ Thumbs.db
 # Kisisel staj defteri kayitlari (proje disinda, GitHub'a gitmemeli)
 Staj_Defteri_Gun32.docx
 staj_defteri/
+
+# Ayri/ilgisiz bir React-Vite denemesi (bu projenin bir parcasi degil)
+interviewpilot-ai/web/
