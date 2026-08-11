@@ -11,9 +11,6 @@
   .auth-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
   .auth-glow { position: absolute; top: -200px; left: 50%; transform: translateX(-50%); width: 800px; height: 500px; background: var(--grad-brand); opacity: .16; filter: blur(120px); border-radius: 50%; }
   .auth-card { width: 420px; position: relative; z-index: 1; }
-  .divider { display:flex; align-items:center; gap:12px; color:var(--text-faint); font-size:12.5px; margin: 20px 0; }
-  .divider::before, .divider::after { content:""; flex:1; height:1px; background:var(--border); }
-  .social-btn { display:flex; align-items:center; justify-content:center; gap:10px; }
 </style>
 </head>
 <body>
@@ -26,12 +23,14 @@
       <p style="margin-top:6px;">Mulakat pratigine kaldigin yerden devam et</p>
     </div>
     <div class="card card-glow" style="padding:32px;">
+      <label class="field-label">E-posta</label>
+      <input class="input" type="email" id="emailInput" placeholder="ornek@eposta.com" style="margin-bottom:14px;">
       <label class="field-label">Sifre</label>
       <input class="input" type="password" id="pwInput" placeholder="••••••••" style="margin-bottom:8px;">
       <div class="room-error hidden" id="loginError" style="background:var(--danger-soft); color:var(--danger); border-radius:12px; padding:10px 14px; font-size:13px; margin-bottom:14px;"></div>
       <button class="btn btn-primary" id="loginBtn" style="width:100%;">Giris Yap</button>
     </div>
-    <p class="text-center" style="margin-top:20px; font-size:13px; color:var(--text-faint);">Bu tek kullanicili bir demo projedir, kayit gerekmez.</p>
+    <p class="text-center" style="margin-top:20px; font-size:13px; color:var(--text-faint);">Hesabin yok mu? <a href="register.html" style="color:var(--indigo-600); font-weight:600;">Kayit ol</a></p>
   </div>
 </div>
 <script>
@@ -44,7 +43,11 @@
   }
 
   async function doLogin() {
+    const email = document.getElementById("emailInput").value.trim();
     const password = document.getElementById("pwInput").value;
+    if (!email) return showError("E-posta gir");
+    if (!password) return showError("Sifre gir");
+
     const btn = document.getElementById("loginBtn");
     btn.disabled = true;
     btn.textContent = "Giris yapiliyor...";
@@ -52,13 +55,13 @@
       const r = await fetch("/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password }),
+        credentials: "same-origin",
+        body: JSON.stringify({ email, password }),
       });
       if (!r.ok) {
         const data = await r.json().catch(() => ({}));
         throw new Error(data.detail || "Giris basarisiz");
       }
-      localStorage.setItem("ip_authed", "1");
       const params = new URLSearchParams(location.search);
       window.location.href = params.get("next") || "dashboard.html";
     } catch (e) {
@@ -69,6 +72,7 @@
   }
 
   document.getElementById("loginBtn").addEventListener("click", doLogin);
+  document.getElementById("emailInput").addEventListener("keydown", (e) => { if (e.key === "Enter") doLogin(); });
   document.getElementById("pwInput").addEventListener("keydown", (e) => { if (e.key === "Enter") doLogin(); });
 </script>
 </body>

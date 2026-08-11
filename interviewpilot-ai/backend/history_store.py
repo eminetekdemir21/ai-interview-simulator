@@ -50,9 +50,12 @@ def add_record(record: dict) -> dict:
         return record
 
 
-def list_records() -> List[dict]:
-    """Ozet liste: PDF/tam gecmis olmadan, listeleme ekrani icin."""
+def list_records(user_id: Optional[str] = None) -> List[dict]:
+    """Ozet liste: PDF/tam gecmis olmadan, listeleme ekrani icin.
+    user_id verilirse sadece o kullaniciya ait kayitlar donulur."""
     records = _load()
+    if user_id is not None:
+        records = [r for r in records if r.get("user_id") == user_id]
     summaries = []
     for r in records:
         summaries.append({
@@ -69,9 +72,12 @@ def list_records() -> List[dict]:
     return summaries
 
 
-def stats() -> dict:
-    """Dashboard KPI'lari icin gercek verilerden hesaplanan ozet istatistik."""
+def stats(user_id: Optional[str] = None) -> dict:
+    """Dashboard KPI'lari icin gercek verilerden hesaplanan ozet istatistik.
+    user_id verilirse sadece o kullaniciya ait kayitlar hesaba katilir."""
     records = _load()
+    if user_id is not None:
+        records = [r for r in records if r.get("user_id") == user_id]
     if not records:
         return {
             "total_interviews": 0,
@@ -154,6 +160,11 @@ def stats() -> dict:
     }
 
 
-def get_record(item_id: str) -> Optional[dict]:
+def get_record(item_id: str, user_id: Optional[str] = None) -> Optional[dict]:
+    """user_id verilirse, kayit baska bir kullaniciya aitse None doner
+    (baska kullanicinin verisine erisimi engeller)."""
     records = _load()
-    return next((r for r in records if r["id"] == item_id), None)
+    record = next((r for r in records if r["id"] == item_id), None)
+    if record and user_id is not None and record.get("user_id") != user_id:
+        return None
+    return record

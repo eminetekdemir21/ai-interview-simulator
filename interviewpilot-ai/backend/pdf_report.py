@@ -70,7 +70,10 @@ def build_pdf_bytes(record: dict) -> bytes:
         created = datetime.fromisoformat(created_raw).strftime("%d.%m.%Y %H:%M")
     except (ValueError, TypeError):
         created = created_raw or "-"
-    job_preview = (record.get("job_preview") or "").replace("\n", " ").strip()[:180]
+    job_preview_full = (record.get("job_preview") or "").replace("\n", " ").strip()
+    job_preview = job_preview_full[:180]
+    if len(job_preview_full) > 180:
+        job_preview = job_preview.rsplit(" ", 1)[0].rstrip(".,;: ") + "..."
     story.append(Paragraph(f"Rapor tarihi: {created}  ·  Is ilani: {job_preview or '-'}", styles["meta"]))
     story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor("#e8def7"), spaceAfter=12))
 

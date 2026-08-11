@@ -250,6 +250,136 @@ Yalnizca su JSON formatinda cevap ver:
     return json.loads(response.text)
 
 
+def analyze_github_profile(profile: dict, repos: list) -> dict:
+    """Kullanicinin gercek genel GitHub profil ve repo verilerine gore
+    kisa, somut bir portfolyo degerlendirmesi uretir."""
+    model = _model(json_mode=True)
+    repo_lines = []
+    for r in repos:
+        desc = r.get("description") or "(aciklama yok)"
+        lang = r.get("language") or "belirtilmemis"
+        repo_lines.append(f"- {r.get('name')} [{lang}]: {desc} ({r.get('stars', 0)} yildiz)")
+    repos_text = "\n".join(repo_lines) if repo_lines else "(genel repo bulunamadi)"
+
+    prompt = f"""Sen bir teknik ise alim uzmanisin ve adaylarin GitHub profillerini
+degerlendiriyorsun. Asagida bir adayin GERCEK genel GitHub verileri var.
+
+Profil: {profile.get('name')} (@{profile.get('login')})
+Bio: {profile.get('bio') or '-'}
+Genel repo sayisi: {profile.get('public_repos', 0)}
+Takipci sayisi: {profile.get('followers', 0)}
+
+Son guncellenen repolar:
+{repos_text}
+
+Degerlendirmeni SADECE yukaridaki gercek verilere dayandir, uydurma proje veya bilgi ekleme.
+Somut repo adlarina atifta bulun.
+
+Yalnizca su JSON formatinda cevap ver:
+{{
+  "score": <0-100 arasi tam sayi, profilin ise alim acisindan etkileyiciligi>,
+  "strengths": ["<gercek veriye dayanan somut guclu yon 1>", "<guclu yon 2>"],
+  "improvements": ["<somut, uygulanabilir iyilestirme onerisi 1>", "<oneri 2>"],
+  "summary": "<2-3 cumlelik genel degerlendirme>"
+}}
+"""
+    response = _generate(model, prompt)
+    return json.loads(response.text)
+
+
+def generate_daily_challenge(stats: dict) -> dict:
+    """Kullanicinin zayif konularina (varsa) agirlik veren, kisa ve tek
+    oturumda cevaplanabilecek gunluk mini teknik soru uretir."""
+    model = _model(json_mode=True)
+    weak = (stats or {}).get("weakest_topic")
+    focus_hint = f"Mumkunse '{weak}' konusuna agirlik ver." if weak else "Genel backend/CS temelleri konularindan sec."
+    prompt = f"""Sen bir teknik mulakat kocususun. Kullaniciya her gun sordugun,
+kisa surede (birkac cumleyle) cevaplanabilecek TEK bir mini teknik soru uret.
+Soru; algoritma, veri yapilari, sistem tasarimi, backend gelistirme ya da CS temelleri
+konularindan biri olmali. Cok uzun ya da kod yazmayi gerektiren bir soru sorma,
+kisa ve net kavramsal/analitik bir soru olsun. {focus_hint}
+
+Yalnizca su JSON formatinda cevap ver:
+{{"question": "<soru metni>"}}
+"""
+    response = _generate(model, prompt)
+    return json.loads(response.text)
+
+
+def evaluate_challenge_answer(question: str, answer: str) -> dict:
+    """Gunluk mini meydan okuma cevabini kisaca puanlar ve geri bildirim verir."""
+    model = _model(json_mode=True)
+    prompt = f"""Sen bir teknik mulakat degerlendiricisisin. Asagidaki kisa gunluk
+mini soruya verilen cevabi degerlendir.
+
+Soru: {question}
+Cevap: {answer}
+
+Cevabi 0-100 arasi puanla. Kisa (1-2 cumle) yapici bir geri bildirim yaz.
+
+Yalnizca su JSON formatinda cevap ver:
+{{"score": <0-100 arasi tam sayi>, "feedback": "<kisa geri bildirim>"}}
+"""
+    response = _generate(model, prompt)
+    return json.loads(response.text)
+
+
+def analyze_job_match(cv_text: str, job_text: str) -> dict:
+    """CV metnini bir is ilani metniyle karsilastirip uyum skoru ve
+    eslesen/eksik anahtar kelimeleri cikarir."""
+    model = _model(json_mode=True)
+    prompt = f"""Sen bir Insan Kaynaklari / ATS (Aday Takip Sistemi) uzmanisin.
+Asagidaki CV'yi verilen is ilaniyla karsilastir.
+
+CV Metni:
+{cv_text[:6000]}
+
+Is Ilani:
+{job_text[:3000]}
+
+Degerlendirmeni SADECE bu iki metnin gercek icerigine dayandir, uydurma bilgi ekleme.
+Is ilaninda gecen somut beceri/teknoloji/anahtar kelimeleri CV ile karsilastir.
+
+Yalnizca su JSON formatinda cevap ver:
+{{
+  "match_score": <0-100 arasi tam sayi, genel uyum>,
+  "matched_keywords": ["<CV'de ve is ilaninda birlikte gecen somut beceri/teknoloji 1>", "..."],
+  "missing_keywords": ["<is ilaninda istenen ama CV'de gorunmeyen somut beceri/teknoloji 1>", "..."],
+  "summary": "<2-3 cumlelik genel degerlendirme ve bu ilana basvuru icin tavsiye>"
+}}
+"""
+    response = _generate(model, prompt)
+    return json.loads(response.text)
+
+
+def generate_roadmap(stats: dict) -> dict:
+    """Kullanicinin gercek mulakat istatistiklerine gore kisisellestirilmis
+    3 haftalik ogrenme yol haritasi uretir."""
+    model = _model(json_mode=True)
+    prompt = f"""Sen bir teknik mulakat kocususun. Adayin gercek mulakat performans verilerine
+gore, zayif oldugu konulara odaklanan, somut ve uygulanabilir 3 haftalik bir ogrenme plani hazirla.
+
+Adayin gercek mulakat istatistikleri:
+{_stats_block(stats)}
+
+Her hafta icin 3-4 somut, yapilabilir gorev yaz (orn. "X konusunu ogren", "Y pratigi yap").
+Gorevler adayin zayif konularina (varsa) oncelikle odaklanmali. Uydurma sayisal veri kullanma.
+
+Yalnizca su JSON formatinda cevap ver:
+{{
+  "focus_area": "<adayin oncelikle odaklanmasi gereken ana konu, orn. 'System Design'>",
+  "summary": "<1-2 cumlelik plan ozeti>",
+  "weeks": [
+    {{"title": "Hafta 1 — Temeller", "tasks": ["<gorev 1>", "<gorev 2>", "<gorev 3>"]}},
+    {{"title": "Hafta 2 — Uygulama", "tasks": ["<gorev 1>", "<gorev 2>", "<gorev 3>"]}},
+    {{"title": "Hafta 3 — Pekistirme", "tasks": ["<gorev 1>", "<gorev 2>"]}}
+  ]
+}}
+"""
+    response = _generate(model, prompt)
+    return json.loads(response.text)
+
+
 def generate_final_report(cv_text: str, job_text: str, history, context: dict | None = None) -> dict:
     """Tum mulakat gecmisine gore genel bir rapor uretir."""
     model = _model(json_mode=True)

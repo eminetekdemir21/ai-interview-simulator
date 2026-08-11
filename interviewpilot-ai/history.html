@@ -93,7 +93,7 @@
 
     filtered.forEach(it => {
       const co = COMPANIES.find(x => x.id === it.company_id);
-      const logoColor = co ? co.color : "#8b5cf6";
+      const logoColor = co ? co.color : "#c4b5fd";
       const initials = co ? co.initials : "GN";
       const companyName = it.company_name || "Genel Mulakat";
       const badgeClass = it.overall_score >= 80 ? "badge-success" : it.overall_score >= 65 ? "badge-warning" : "badge-danger";

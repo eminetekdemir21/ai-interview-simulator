@@ -13,7 +13,9 @@
 
   .connect-card { display:flex; align-items:center; gap:14px; padding:16px; border:1px solid var(--border); border-radius:14px; margin-bottom:12px; }
   .repo-card { padding:14px; border:1px solid var(--border); border-radius:12px; margin-bottom:10px; }
-  
+  .pf-spinner { width:22px; height:22px; border-radius:50%; border:3px solid var(--border); border-top-color:var(--indigo); animation: pf-spin 0.8s linear infinite; }
+  @keyframes pf-spin { to { transform: rotate(360deg); } }
+
 </style>
 </head>
 <body>
@@ -37,38 +39,65 @@
 </aside>
   <div class="main-content">
     <div class="topbar">
-      <div><div class="h4">Portfolyo Modu</div><div class="faint" style="font-size:13px;">GitHub ve LinkedIn'ini baglayarak profilini guclendir</div></div>
+      <div><div class="h4">Portfolyo Modu</div><div class="faint" style="font-size:13px;">GitHub'ini baglayarak gercek verilerinle profilini guclendir</div></div>
       <div class="flex items-center gap-12">
         <div class="switch theme-switch" onclick="toggleTheme()"></div>
-        
       </div>
     </div>
     <div class="page-body">
-      <div class="grid" style="grid-template-columns:1fr 1.4fr; gap:20px;">
-        <div>
-          <div class="connect-card fade-up">
-            <i data-lucide="github" style="width:28px;"></i>
-            <div style="flex:1;"><div style="font-weight:700; font-size:14px;">GitHub</div><div class="faint" style="font-size:12.5px;">eminetekdemir21 baglandi</div></div>
-            <span class="badge badge-success">Bagli</span>
-          </div>
-          <div class="connect-card fade-up delay-1">
-            <i data-lucide="linkedin" style="width:28px;"></i>
-            <div style="flex:1;"><div style="font-weight:700; font-size:14px;">LinkedIn</div><div class="faint" style="font-size:12.5px;">Profil analiz icin baglan</div></div>
-            <button class="btn btn-secondary btn-sm">Bagla</button>
-          </div>
-          <div class="card fade-up delay-2" style="margin-top:8px;">
-            <div class="h4" style="margin-bottom:8px;">Kod Kalitesi Skoru</div>
-            <div style="font-size:32px; font-weight:800;">76<span style="font-size:15px; color:var(--text-faint);">/100</span></div>
-            <p class="faint" style="font-size:12.5px; margin-top:4px;">Commit sikligi, README kalitesi ve test kapsamina gore (orunek analiz)</p>
+
+      <div class="card fade-up" id="connectCard" style="max-width:480px;">
+        <div class="connect-card" style="margin-bottom:0;">
+          <i data-lucide="github" style="width:28px;"></i>
+          <div style="flex:1;">
+            <div style="font-weight:700; font-size:14px;">GitHub</div>
+            <div class="faint" style="font-size:12.5px;">Genel profilini baglayarak gercek repo verilerinle analiz al</div>
           </div>
         </div>
-        <div class="card fade-up">
-          <div class="h4" style="margin-bottom:14px;">Repolar</div>
-          <div class="repo-card"><div class="flex justify-between items-center"><span style="font-weight:700; font-size:13.5px;">ai-interview-simulator</span><span class="tag">Python</span></div><p class="faint" style="font-size:12.5px; margin-top:4px;">FastAPI + Gemini AI ile mulakat simulasyonu</p></div>
-          <div class="repo-card"><div class="flex justify-between items-center"><span style="font-weight:700; font-size:13.5px;">finans-takip-app</span><span class="tag">JavaScript</span></div><p class="faint" style="font-size:12.5px; margin-top:4px;">Kisisel butce ve harcama takip uygulamasi</p></div>
-          <div class="repo-card"><div class="flex justify-between items-center"><span style="font-weight:700; font-size:13.5px;">e-ticaret-api</span><span class="tag">Node.js</span></div><p class="faint" style="font-size:12.5px; margin-top:4px;">PostgreSQL destekli REST API</p></div>
+        <div style="margin-top:14px;">
+          <input class="input" id="githubInput" placeholder="GitHub kullanici adin (orn. torvalds)">
+          <div class="room-error hidden" id="githubError" style="background:var(--danger-soft); color:var(--danger); border-radius:12px; padding:10px 14px; font-size:13px; margin-top:10px;"></div>
+          <button class="btn btn-primary" id="connectBtn" style="width:100%; margin-top:10px;">Bagla ve Analiz Et</button>
         </div>
       </div>
+
+      <div id="portfolioContent" class="hidden">
+        <div class="grid" style="grid-template-columns:1fr 1.4fr; gap:20px;">
+          <div>
+            <div class="connect-card fade-up">
+              <img id="avatarImg" src="" alt="" style="width:40px; height:40px; border-radius:50%;">
+              <div style="flex:1;"><div style="font-weight:700; font-size:14px;" id="profileName">-</div><div class="faint" style="font-size:12.5px;" id="profileLogin">-</div></div>
+              <span class="badge badge-success">Bagli</span>
+            </div>
+            <div class="card fade-up delay-1" style="margin-bottom:12px;">
+              <div class="flex justify-between" style="font-size:13px;"><span class="muted">Genel repo</span><span style="font-weight:700;" id="statRepos">-</span></div>
+              <div class="flex justify-between" style="margin-top:8px; font-size:13px;"><span class="muted">Takipci</span><span style="font-weight:700;" id="statFollowers">-</span></div>
+              <button class="btn btn-secondary btn-sm" id="disconnectBtn" style="width:100%; margin-top:12px;">Baglantiyi Kaldir</button>
+            </div>
+            <div class="card fade-up delay-2">
+              <div class="h4" style="margin-bottom:8px;">AI Portfolyo Skoru</div>
+              <div style="font-size:32px; font-weight:800;"><span id="aiScore">-</span><span style="font-size:15px; color:var(--text-faint);">/100</span></div>
+              <p class="faint" style="font-size:12.5px; margin-top:4px;">Gercek repolarina gore yapay zeka degerlendirmesi</p>
+              <div id="aiStrengths" style="margin-top:12px;"></div>
+              <div id="aiImprovements" style="margin-top:10px;"></div>
+              <p class="faint" style="font-size:12.5px; margin-top:10px;" id="aiSummary"></p>
+            </div>
+          </div>
+          <div class="card fade-up">
+            <div class="flex justify-between items-center" style="margin-bottom:14px;">
+              <div class="h4">Repolar</div>
+              <button class="btn btn-ghost btn-sm" id="refreshBtn"><i data-lucide="refresh-cw" style="width:14px"></i> Yenile</button>
+            </div>
+            <div id="repoList"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card fade-up hidden" id="loadingCard" style="text-align:center; padding:40px;">
+        <div class="pf-spinner" style="margin:0 auto 12px;"></div>
+        <p class="faint" style="font-size:13px;">GitHub verilerin cekiliyor ve yapay zeka analiz ediyor...</p>
+      </div>
+
     </div>
   </div>
 </div>
@@ -76,6 +105,122 @@
 <script>
   lucide.createIcons();
 
+  function showLoading(on) {
+    document.getElementById("loadingCard").classList.toggle("hidden", !on);
+    document.getElementById("connectCard").classList.toggle("hidden", on);
+  }
+
+  function showError(msg) {
+    const el = document.getElementById("githubError");
+    el.textContent = msg;
+    el.classList.remove("hidden");
+  }
+  function hideError() {
+    document.getElementById("githubError").classList.add("hidden");
+  }
+
+  function renderPortfolio(data) {
+    document.getElementById("connectCard").classList.add("hidden");
+    document.getElementById("loadingCard").classList.add("hidden");
+    document.getElementById("portfolioContent").classList.remove("hidden");
+
+    const p = data.profile;
+    document.getElementById("avatarImg").src = p.avatar_url || "";
+    document.getElementById("profileName").textContent = p.name || p.login;
+    document.getElementById("profileLogin").textContent = "@" + p.login;
+    document.getElementById("statRepos").textContent = p.public_repos ?? "-";
+    document.getElementById("statFollowers").textContent = p.followers ?? "-";
+
+    const a = data.analysis || {};
+    document.getElementById("aiScore").textContent = a.score ?? "-";
+    document.getElementById("aiStrengths").innerHTML = (a.strengths || []).map(s =>
+      `<div style="display:flex; gap:8px; font-size:12.5px; padding:3px 0;"><i data-lucide="check-circle-2" style="width:14px; color:var(--success);"></i>${s}</div>`
+    ).join("");
+    document.getElementById("aiImprovements").innerHTML = (a.improvements || []).map(s =>
+      `<div style="display:flex; gap:8px; font-size:12.5px; padding:3px 0;"><i data-lucide="alert-circle" style="width:14px; color:var(--warning);"></i>${s}</div>`
+    ).join("");
+    document.getElementById("aiSummary").textContent = a.summary || "";
+
+    const repoList = document.getElementById("repoList");
+    const repos = data.repos || [];
+    repoList.innerHTML = repos.length ? repos.map(r => `
+      <a href="${r.html_url}" target="_blank" class="repo-card" style="display:block; text-decoration:none; color:inherit;">
+        <div class="flex justify-between items-center">
+          <span style="font-weight:700; font-size:13.5px;">${r.name}</span>
+          ${r.language ? `<span class="tag">${r.language}</span>` : ""}
+        </div>
+        <p class="faint" style="font-size:12.5px; margin-top:4px;">${r.description || "(aciklama yok)"}</p>
+        ${r.stars ? `<p class="faint" style="font-size:11.5px; margin-top:4px;">★ ${r.stars}</p>` : ""}
+      </a>
+    `).join("") : '<p class="faint" style="font-size:13px;">Genel repo bulunamadi.</p>';
+
+    lucide.createIcons();
+  }
+
+  async function connectGithub() {
+    hideError();
+    const username = document.getElementById("githubInput").value.trim();
+    if (!username) return showError("GitHub kullanici adini gir");
+
+    const btn = document.getElementById("connectBtn");
+    btn.disabled = true;
+    showLoading(true);
+    try {
+      const r = await fetch("/api/portfolio/github", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username }),
+      });
+      if (!r.ok) {
+        const data = await r.json().catch(() => ({}));
+        throw new Error(data.detail || "Baglanti basarisiz");
+      }
+      const data = await r.json();
+      renderPortfolio(data);
+    } catch (e) {
+      showLoading(false);
+      showError(e.message);
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  async function loadExisting() {
+    try {
+      const r = await fetch("/api/portfolio");
+      if (r.status === 400) return; // henuz baglanmamis, connect ekranini goster
+      if (!r.ok) return;
+      const data = await r.json();
+      renderPortfolio(data);
+    } catch (e) {
+      // sessizce connect ekraninda kal
+    }
+  }
+
+  async function disconnectGithub() {
+    if (!confirm("GitHub baglantisini kaldirmak istedigine emin misin?")) return;
+    try {
+      await fetch("/api/portfolio/disconnect", { method: "POST" });
+    } catch (e) {}
+    document.getElementById("portfolioContent").classList.add("hidden");
+    document.getElementById("connectCard").classList.remove("hidden");
+    document.getElementById("githubInput").value = "";
+  }
+
+  document.getElementById("connectBtn").addEventListener("click", connectGithub);
+  document.getElementById("githubInput").addEventListener("keydown", (e) => { if (e.key === "Enter") connectGithub(); });
+  document.getElementById("disconnectBtn").addEventListener("click", disconnectGithub);
+  document.getElementById("refreshBtn").addEventListener("click", async () => {
+    const btn = document.getElementById("refreshBtn");
+    btn.disabled = true;
+    try {
+      await loadExisting();
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  loadExisting();
 </script>
 </body>
 </html>

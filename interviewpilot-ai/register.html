@@ -3,29 +3,86 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Kayit — InterviewPilot AI</title>
+<title>Kayit Ol — InterviewPilot AI</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Manrope:wght@700;800&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 <link rel="stylesheet" href="assets/style.css">
 <style>
   .auth-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; padding: 40px 16px; }
   .auth-glow { position: absolute; top: -200px; left: 50%; transform: translateX(-50%); width: 800px; height: 500px; background: var(--grad-brand); opacity: .16; filter: blur(120px); border-radius: 50%; }
-  .auth-card { width: 420px; position: relative; z-index: 1; text-align:center; }
+  .auth-card { width: 420px; position: relative; z-index: 1; }
 </style>
 </head>
 <body>
 <div class="auth-wrap">
   <div class="auth-glow"></div>
   <div class="auth-card">
-    <div class="brand" style="justify-content:center; margin-bottom:16px;"><div class="brand-mark">IP</div>InterviewPilot <span class="gradient-text">AI</span></div>
-    <div class="card card-glow" style="padding:32px;">
-      <i data-lucide="user-check" style="width:36px; height:36px; color:var(--indigo);"></i>
-      <h3 class="h3" style="margin-top:14px;">Bu tek kullanicili bir uygulama</h3>
-      <p class="faint" style="margin-top:8px; font-size:14px;">Ayri bir hesap olusturmana gerek yok. Sadece giris sifresiyle icerideki mulakat pratiklerine devam edebilirsin.</p>
-      <a href="login.html" class="btn btn-primary" style="width:100%; margin-top:20px;">Giris Sayfasina Git</a>
+    <div class="text-center" style="margin-bottom:28px;">
+      <div class="brand" style="justify-content:center; margin-bottom:16px;"><div class="brand-mark">IP</div>InterviewPilot <span class="gradient-text">AI</span></div>
+      <h2 class="h3">Hesap olustur</h2>
+      <p style="margin-top:6px;">Mulakat pratigine baslamak icin kayit ol</p>
     </div>
+    <div class="card card-glow" style="padding:32px;">
+      <label class="field-label">Ad Soyad</label>
+      <input class="input" type="text" id="nameInput" placeholder="Ad Soyad" style="margin-bottom:14px;">
+      <label class="field-label">E-posta</label>
+      <input class="input" type="email" id="emailInput" placeholder="ornek@eposta.com" style="margin-bottom:14px;">
+      <label class="field-label">Sifre</label>
+      <input class="input" type="password" id="pwInput" placeholder="En az 6 karakter" style="margin-bottom:14px;">
+      <label class="field-label">Sifre (Tekrar)</label>
+      <input class="input" type="password" id="pw2Input" placeholder="••••••••" style="margin-bottom:8px;">
+      <div class="room-error hidden" id="regError" style="background:var(--danger-soft); color:var(--danger); border-radius:12px; padding:10px 14px; font-size:13px; margin-bottom:14px;"></div>
+      <button class="btn btn-primary" id="regBtn" style="width:100%;">Kayit Ol</button>
+    </div>
+    <p class="text-center" style="margin-top:20px; font-size:13px; color:var(--text-faint);">Zaten hesabin var mi? <a href="login.html" style="color:var(--indigo-600); font-weight:600;">Giris yap</a></p>
   </div>
 </div>
-<script>lucide.createIcons();</script>
+<script>
+  lucide.createIcons();
+
+  function showError(msg) {
+    const el = document.getElementById("regError");
+    el.textContent = msg;
+    el.classList.remove("hidden");
+  }
+
+  async function doRegister() {
+    const name = document.getElementById("nameInput").value.trim();
+    const email = document.getElementById("emailInput").value.trim();
+    const password = document.getElementById("pwInput").value;
+    const password2 = document.getElementById("pw2Input").value;
+
+    if (!name) return showError("Adini gir");
+    if (!email || !email.includes("@")) return showError("Gecerli bir e-posta gir");
+    if (password.length < 6) return showError("Sifre en az 6 karakter olmali");
+    if (password !== password2) return showError("Sifreler eslesmiyor");
+
+    const btn = document.getElementById("regBtn");
+    btn.disabled = true;
+    btn.textContent = "Kayit olunuyor...";
+    try {
+      const r = await fetch("/api/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({ name, email, password }),
+      });
+      if (!r.ok) {
+        const data = await r.json().catch(() => ({}));
+        throw new Error(data.detail || "Kayit basarisiz");
+      }
+      window.location.href = "dashboard.html";
+    } catch (e) {
+      showError(e.message);
+      btn.disabled = false;
+      btn.textContent = "Kayit Ol";
+    }
+  }
+
+  document.getElementById("regBtn").addEventListener("click", doRegister);
+  document.querySelectorAll(".input").forEach((el) => {
+    el.addEventListener("keydown", (e) => { if (e.key === "Enter") doRegister(); });
+  });
+</script>
 </body>
 </html>

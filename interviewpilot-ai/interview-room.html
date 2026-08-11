@@ -16,9 +16,9 @@
   .room-body { flex:1; display:grid; grid-template-columns: 1fr 360px; overflow:hidden; }
   .stage { display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:32px; position:relative; overflow-y:auto; }
   .ai-avatar-wrap { position:relative; width:220px; height:220px; }
-  .ai-avatar { width:220px; height:220px; border-radius:50%; background:var(--grad-brand); display:flex; align-items:center; justify-content:center; box-shadow:0 20px 60px rgba(99,102,241,.35); }
+  .ai-avatar { width:220px; height:220px; border-radius:50%; background:var(--grad-brand); display:flex; align-items:center; justify-content:center; box-shadow:0 20px 60px rgba(244,114,182,.35); }
   .ai-avatar i { width:90px; height:90px; color:#fff; }
-  .ring { position:absolute; inset:-14px; border-radius:50%; border:2px solid rgba(99,102,241,.35); animation: ring-pulse 2.4s ease-out infinite; }
+  .ring { position:absolute; inset:-14px; border-radius:50%; border:2px solid rgba(244,114,182,.35); animation: ring-pulse 2.4s ease-out infinite; }
   .ring.r2 { animation-delay: .8s; }
   .ring.r3 { animation-delay: 1.6s; }
   @keyframes ring-pulse { 0% { transform:scale(.9); opacity:.7; } 100% { transform:scale(1.35); opacity:0; } }
@@ -32,9 +32,9 @@
   .answer-box { width:100%; min-height:90px; border:1.5px solid var(--border); border-radius:14px; padding:14px; font-family:inherit; font-size:14.5px; resize:vertical; background:var(--surface-2); color:var(--text); }
   .answer-box:focus { outline:none; border-color:var(--indigo); }
   .controls-row { display:flex; align-items:center; gap:10px; margin-top:14px; }
-  .mic-btn { width:52px; height:52px; border-radius:50%; background:var(--grad-brand); color:#fff; display:flex; align-items:center; justify-content:center; border:none; cursor:pointer; box-shadow:0 6px 20px rgba(99,102,241,.35); }
+  .mic-btn { width:52px; height:52px; border-radius:50%; background:var(--grad-brand); color:#fff; display:flex; align-items:center; justify-content:center; border:none; cursor:pointer; box-shadow:0 6px 20px rgba(244,114,182,.35); }
   .mic-btn.recording { animation: mic-pulse 1.2s infinite; }
-  @keyframes mic-pulse { 0%,100% { box-shadow:0 0 0 0 rgba(239,68,68,.5); } 50% { box-shadow:0 0 0 12px rgba(239,68,68,0); } }
+  @keyframes mic-pulse { 0%,100% { box-shadow:0 0 0 0 rgba(251,113,133,.5); } 50% { box-shadow:0 0 0 12px rgba(251,113,133,0); } }
   .side-panel { border-left:1px solid var(--border); background:var(--surface); display:flex; flex-direction:column; overflow:hidden; }
   .side-tabs { display:flex; border-bottom:1px solid var(--border); }
   .side-tab { flex:1; text-align:center; padding:12px; font-size:13px; font-weight:700; color:var(--text-faint); cursor:pointer; border-bottom:2px solid transparent; }

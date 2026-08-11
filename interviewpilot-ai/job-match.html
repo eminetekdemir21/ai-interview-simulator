@@ -11,11 +11,13 @@
 <script src="assets/auth-guard.js"></script>
 <style>
 
-  .match-ring { width:120px; height:120px; margin:0 auto; }
+  .match-ring { width:120px; height:120px; margin:0 auto; position:relative; }
   .kw-chip { display:inline-flex; align-items:center; gap:6px; padding:5px 12px; border-radius:999px; font-size:12.5px; font-weight:600; margin:3px; }
   .kw-match { background:var(--success-soft); color:var(--success); }
   .kw-missing { background:var(--danger-soft); color:var(--danger); }
-  
+  .upload-zone-sm { border:2px dashed var(--border); border-radius:14px; padding:20px; text-align:center; cursor:pointer; transition:.15s; margin-bottom:14px; }
+  .upload-zone-sm:hover { border-color:var(--indigo); background:var(--grad-brand-soft); }
+
 </style>
 </head>
 <body>
@@ -39,31 +41,28 @@
 </aside>
   <div class="main-content">
     <div class="topbar">
-      <div><div class="h4">CV — Is Ilani Uyumu</div><div class="faint" style="font-size:13px;">Is ilanini yapistir, CV'nle karsilastir</div></div>
+      <div><div class="h4">CV — Is Ilani Uyumu</div><div class="faint" style="font-size:13px;">CV'ni yukle, is ilanini yapistir, gercek uyumunu gor</div></div>
       <div class="flex items-center gap-12">
         <div class="switch theme-switch" onclick="toggleTheme()"></div>
-        
       </div>
     </div>
     <div class="page-body">
       <div class="grid" style="grid-template-columns:1fr 1fr; gap:20px;">
         <div class="card fade-up">
-          <div class="h4" style="margin-bottom:10px;">Is Ilani</div>
-          <textarea class="input" style="min-height:220px; resize:vertical;" placeholder="Is ilani metnini buraya yapistir...">Google - Backend Developer
-Aradigimiz: 2+ yil Python/Java deneyimi, REST API tasarimi, SQL/NoSQL, dagitik sistemler bilgisi, CS temelleri (algoritma, veri yapilari)...</textarea>
-          <button class="btn btn-primary" style="width:100%; margin-top:14px;">Uyumu Analiz Et</button>
-        </div>
-        <div class="card fade-up delay-1 text-center">
-          <div class="match-ring"><canvas id="matchRing"></canvas></div>
-          <div class="h3" style="margin-top:-70px;">%82</div>
-          <p class="faint" style="font-size:13px; margin-top:52px;">Genel Uyum Skoru</p>
-          <hr style="border:none; border-top:1px solid var(--border); margin:16px 0;">
-          <div style="text-align:left;">
-            <div style="font-size:13px; font-weight:700; margin-bottom:6px;">Eslesen Anahtar Kelimeler</div>
-            <div><span class="kw-chip kw-match"><i data-lucide="check" style="width:12px"></i>Python</span><span class="kw-chip kw-match"><i data-lucide="check" style="width:12px"></i>REST API</span><span class="kw-chip kw-match"><i data-lucide="check" style="width:12px"></i>SQL</span></div>
-            <div style="font-size:13px; font-weight:700; margin:14px 0 6px;">Eksik Anahtar Kelimeler</div>
-            <div><span class="kw-chip kw-missing"><i data-lucide="x" style="width:12px"></i>Dagitik Sistemler</span><span class="kw-chip kw-missing"><i data-lucide="x" style="width:12px"></i>Kubernetes</span></div>
+          <div class="h4" style="margin-bottom:10px;">CV</div>
+          <div class="upload-zone-sm" id="uploadZone">
+            <i data-lucide="upload-cloud" style="width:26px; color:var(--indigo);"></i>
+            <p style="font-weight:700; margin-top:8px; font-size:13.5px;" id="uploadLabel">CV'ni surukle birak ya da sec</p>
+            <p class="faint" style="font-size:12px; margin-top:2px;">PDF — 10MB'a kadar</p>
+            <input type="file" id="cvFileInput" accept=".pdf" class="hidden">
           </div>
+          <div class="h4" style="margin-bottom:10px;">Is Ilani</div>
+          <textarea class="input" id="jobText" style="min-height:180px; resize:vertical;" placeholder="Is ilani metnini buraya yapistir..."></textarea>
+          <div class="room-error hidden" id="jmError" style="background:var(--danger-soft); color:var(--danger); border-radius:12px; padding:10px 14px; font-size:13px; margin-top:12px;"></div>
+          <button class="btn btn-primary" id="analyzeBtn" style="width:100%; margin-top:14px;">Uyumu Analiz Et</button>
+        </div>
+        <div class="card fade-up delay-1 text-center" id="resultCard">
+          <p class="faint" style="font-size:13.5px; padding:40px 0;">CV'ni yukleyip is ilanini yapistirdiginda gercek uyum analizin burada gorunecek.</p>
         </div>
       </div>
     </div>
@@ -73,8 +72,109 @@ Aradigimiz: 2+ yil Python/Java deneyimi, REST API tasarimi, SQL/NoSQL, dagitik s
 <script>
   lucide.createIcons();
 
-  new Chart(document.getElementById("matchRing"), { type:"doughnut", data:{ datasets:[{data:[82,18], backgroundColor:["#6366f1","rgba(150,150,180,.12)"], borderWidth:0}] }, options:{ cutout:"78%", plugins:{legend:{display:false}} } });
-  
+  let selectedFile = null;
+  const fileInput = document.getElementById("cvFileInput");
+  const uploadZone = document.getElementById("uploadZone");
+  const resultCard = document.getElementById("resultCard");
+
+  uploadZone.addEventListener("click", () => fileInput.click());
+  uploadZone.addEventListener("dragover", (e) => { e.preventDefault(); uploadZone.style.borderColor = "var(--indigo)"; });
+  uploadZone.addEventListener("dragleave", () => { uploadZone.style.borderColor = ""; });
+  uploadZone.addEventListener("drop", (e) => {
+    e.preventDefault();
+    uploadZone.style.borderColor = "";
+    if (e.dataTransfer.files.length) {
+      fileInput.files = e.dataTransfer.files;
+      setFile(fileInput.files[0]);
+    }
+  });
+  fileInput.addEventListener("change", () => {
+    if (fileInput.files.length) setFile(fileInput.files[0]);
+  });
+
+  function setFile(file) {
+    selectedFile = file;
+    document.getElementById("uploadLabel").textContent = file.name;
+  }
+
+  function showError(msg) {
+    const el = document.getElementById("jmError");
+    el.textContent = msg;
+    el.classList.remove("hidden");
+  }
+  function hideError() {
+    document.getElementById("jmError").classList.add("hidden");
+  }
+
+  function scoreColor(score) {
+    if (score >= 75) return "#34d399";
+    if (score >= 50) return "#fbbf24";
+    return "#fb7185";
+  }
+
+  function renderResult(data) {
+    const score = data.match_score ?? 0;
+    const matched = (data.matched_keywords || []).map(k =>
+      `<span class="kw-chip kw-match"><i data-lucide="check" style="width:12px"></i>${k}</span>`
+    ).join("") || '<span class="faint" style="font-size:12.5px;">Eslesen anahtar kelime bulunamadi</span>';
+    const missing = (data.missing_keywords || []).map(k =>
+      `<span class="kw-chip kw-missing"><i data-lucide="x" style="width:12px"></i>${k}</span>`
+    ).join("") || '<span class="faint" style="font-size:12.5px;">Eksik anahtar kelime yok</span>';
+
+    resultCard.innerHTML = `
+      <div class="match-ring"><canvas id="matchRing"></canvas></div>
+      <div class="h3" style="margin-top:-70px;">%${score}</div>
+      <p class="faint" style="font-size:13px; margin-top:52px;">Genel Uyum Skoru</p>
+      <hr style="border:none; border-top:1px solid var(--border); margin:16px 0;">
+      <div style="text-align:left;">
+        <div style="font-size:13px; font-weight:700; margin-bottom:6px;">Eslesen Anahtar Kelimeler</div>
+        <div>${matched}</div>
+        <div style="font-size:13px; font-weight:700; margin:14px 0 6px;">Eksik Anahtar Kelimeler</div>
+        <div>${missing}</div>
+        ${data.summary ? `<div style="font-size:13px; font-weight:700; margin:14px 0 6px;">Degerlendirme</div><p class="faint" style="font-size:13px;">${data.summary}</p>` : ""}
+      </div>
+    `;
+    lucide.createIcons();
+    new Chart(document.getElementById("matchRing"), {
+      type: "doughnut",
+      data: { datasets: [{ data: [score, 100 - score], backgroundColor: [scoreColor(score), "rgba(150,150,180,.12)"], borderWidth: 0 }] },
+      options: { cutout: "78%", plugins: { legend: { display: false } } }
+    });
+  }
+
+  document.getElementById("analyzeBtn").addEventListener("click", async () => {
+    hideError();
+    const jobText = document.getElementById("jobText").value.trim();
+    if (!selectedFile) return showError("Once CV dosyani yukle");
+    if (!jobText) return showError("Is ilani metnini yapistir");
+
+    const btn = document.getElementById("analyzeBtn");
+    btn.disabled = true;
+    btn.textContent = "Analiz ediliyor...";
+    resultCard.innerHTML = '<p class="faint" style="font-size:13.5px; padding:40px 0;">AI CV ve is ilanini karsilastiriyor...</p>';
+
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 45000);
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+      formData.append("job_text", jobText);
+      const r = await fetch("/api/job-match", { method: "POST", body: formData, signal: controller.signal });
+      clearTimeout(timer);
+      if (!r.ok) {
+        const data = await r.json().catch(() => ({}));
+        throw new Error(data.detail || "Analiz basarisiz");
+      }
+      const data = await r.json();
+      renderResult(data);
+    } catch (e) {
+      resultCard.innerHTML = '<p class="faint" style="font-size:13.5px; padding:40px 0;">CV\'ni yukleyip is ilanini yapistirdiginda gercek uyum analizin burada gorunecek.</p>';
+      showError(e.name === "AbortError" ? "Istek zaman asimina ugradi, tekrar dene." : e.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Uyumu Analiz Et";
+    }
+  });
 </script>
 </body>
 </html>

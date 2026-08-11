@@ -6,37 +6,37 @@
 .hidden { display: none !important; }
 
 :root {
-  /* Brand */
-  --indigo: #6366f1;
-  --indigo-600: #4f46e5;
-  --purple: #8b5cf6;
-  --blue: #3b82f6;
-  --grad-brand: linear-gradient(120deg, #6366f1 0%, #8b5cf6 50%, #3b82f6 100%);
-  --grad-brand-soft: linear-gradient(120deg, rgba(99,102,241,.12), rgba(139,92,246,.12), rgba(59,130,246,.12));
+  /* Brand — pastel palette (pembe/mavi/yesil/sari) */
+  --indigo: #f472b6;
+  --indigo-600: #db2777;
+  --purple: #c4b5fd;
+  --blue: #7dd3fc;
+  --grad-brand: linear-gradient(120deg, #fbcfe8 0%, #c4b5fd 35%, #93c5fd 65%, #86efac 100%);
+  --grad-brand-soft: linear-gradient(120deg, rgba(244,114,182,.14), rgba(196,181,253,.14), rgba(125,211,252,.14));
 
   /* Semantic */
-  --success: #10b981;
-  --warning: #f59e0b;
-  --danger: #ef4444;
-  --info: #3b82f6;
-  --success-soft: rgba(16,185,129,.12);
-  --warning-soft: rgba(245,158,11,.12);
-  --danger-soft: rgba(239,68,68,.12);
+  --success: #34d399;
+  --warning: #fbbf24;
+  --danger: #fb7185;
+  --info: #7dd3fc;
+  --success-soft: rgba(52,211,153,.14);
+  --warning-soft: rgba(251,191,36,.14);
+  --danger-soft: rgba(251,113,133,.14);
 
   /* Surfaces (light) */
-  --bg: #f7f7fb;
+  --bg: #fdf9ff;
   --bg-alt: #ffffff;
   --surface: #ffffff;
   --surface-glass: rgba(255, 255, 255, 0.72);
-  --border: #eceef4;
-  --border-strong: #e1e4ee;
+  --border: #f2e9f7;
+  --border-strong: #e9dcf0;
   --text: #14141f;
   --text-muted: #6b7086;
   --text-faint: #9a9fb3;
   --shadow-sm: 0 2px 8px rgba(20, 20, 40, 0.04);
   --shadow-md: 0 8px 24px rgba(20, 20, 45, 0.08);
   --shadow-lg: 0 20px 48px rgba(20, 20, 45, 0.12);
-  --shadow-glow: 0 0 0 1px rgba(99,102,241,0.08), 0 12px 32px rgba(99,102,241,0.16);
+  --shadow-glow: 0 0 0 1px rgba(244,114,182,0.1), 0 12px 32px rgba(244,114,182,0.18);
 
   --radius-sm: 10px;
   --radius-md: 16px;
@@ -60,7 +60,7 @@
   --shadow-sm: 0 2px 10px rgba(0,0,0,.3);
   --shadow-md: 0 10px 30px rgba(0,0,0,.4);
   --shadow-lg: 0 24px 60px rgba(0,0,0,.5);
-  --shadow-glow: 0 0 0 1px rgba(99,102,241,0.25), 0 16px 40px rgba(99,102,241,0.25);
+  --shadow-glow: 0 0 0 1px rgba(244,114,182,0.25), 0 16px 40px rgba(244,114,182,0.25);
 }
 
 * { box-sizing: border-box; }
@@ -80,7 +80,7 @@ img { max-width: 100%; display: block; }
 ul { margin: 0; padding: 0; list-style: none; }
 button { font-family: inherit; }
 
-::selection { background: rgba(99,102,241,.25); }
+::selection { background: rgba(244,114,182,.25); }
 
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 99px; }
@@ -105,7 +105,7 @@ button { font-family: inherit; }
   display: inline-flex; align-items: center; gap: 8px;
   font-size: 13px; font-weight: 600; color: var(--indigo-600);
   background: var(--grad-brand-soft);
-  border: 1px solid rgba(99,102,241,.18);
+  border: 1px solid rgba(244,114,182,.18);
   padding: 6px 14px; border-radius: 999px;
 }
 .display-1 { font-size: clamp(40px, 6vw, 68px); font-weight: 800; line-height: 1.05; }
@@ -129,9 +129,9 @@ button { font-family: inherit; }
 .btn-sm { padding: 8px 14px; font-size: 13px; border-radius: 10px; }
 .btn-primary {
   background: var(--grad-brand); color: white;
-  box-shadow: 0 8px 20px rgba(99,102,241,.35);
+  box-shadow: 0 8px 20px rgba(244,114,182,.35);
 }
-.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(99,102,241,.45); }
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(244,114,182,.45); }
 .btn-secondary {
   background: var(--surface); color: var(--text);
   border: 1px solid var(--border-strong); box-shadow: var(--shadow-sm);
@@ -160,7 +160,7 @@ button { font-family: inherit; }
   -webkit-backdrop-filter: blur(20px) saturate(160%);
   border: 1px solid rgba(255,255,255,.14);
 }
-.card-glow { box-shadow: var(--shadow-glow); border-color: rgba(99,102,241,.25); }
+.card-glow { box-shadow: var(--shadow-glow); border-color: rgba(244,114,182,.25); }
 
 /* ---------- Badges / Tags ---------- */
 .badge {
@@ -168,10 +168,10 @@ button { font-family: inherit; }
   font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px;
   border: 1px solid transparent;
 }
-.badge-indigo { background: rgba(99,102,241,.12); color: var(--indigo-600); }
-.badge-success { background: rgba(16,185,129,.12); color: var(--success); }
-.badge-warning { background: rgba(245,158,11,.12); color: var(--warning); }
-.badge-danger { background: rgba(239,68,68,.12); color: var(--danger); }
+.badge-indigo { background: rgba(244,114,182,.12); color: var(--indigo-600); }
+.badge-success { background: var(--success-soft); color: var(--success); }
+.badge-warning { background: var(--warning-soft); color: var(--warning); }
+.badge-danger { background: var(--danger-soft); color: var(--danger); }
 .badge-neutral { background: var(--border); color: var(--text-muted); }
 .tag {
   display: inline-flex; padding: 5px 12px; border-radius: 8px; font-size: 12.5px;
@@ -185,7 +185,7 @@ button { font-family: inherit; }
   font-family: inherit; transition: border-color .15s ease, box-shadow .15s ease;
 }
 .input:focus, select.input:focus, textarea.input:focus {
-  outline: none; border-color: var(--indigo); box-shadow: 0 0 0 4px rgba(99,102,241,.12);
+  outline: none; border-color: var(--indigo); box-shadow: 0 0 0 4px rgba(244,114,182,.12);
 }
 .field-label { font-size: 13px; font-weight: 600; color: var(--text-muted); margin-bottom: 8px; display: block; }
 
@@ -220,7 +220,7 @@ button { font-family: inherit; }
 .brand-mark {
   width: 34px; height: 34px; border-radius: 10px; background: var(--grad-brand);
   display: flex; align-items: center; justify-content: center; color: white; font-weight: 800; font-size: 15px;
-  box-shadow: 0 6px 16px rgba(99,102,241,.35);
+  box-shadow: 0 6px 16px rgba(244,114,182,.35);
 }
 .nav-links { display: flex; gap: 4px; }
 .nav-links a {
@@ -234,6 +234,7 @@ button { font-family: inherit; }
 .sidebar {
   width: 264px; flex-shrink: 0; background: var(--surface); border-right: 1px solid var(--border);
   padding: 20px 14px; display: flex; flex-direction: column; gap: 4px; position: sticky; top: 0; height: 100vh;
+  overflow-y: auto;
 }
 .sidebar-section-label {
   font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-faint);

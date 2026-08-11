@@ -12,8 +12,9 @@ class QARecord:
 
 
 class Session:
-    def __init__(self):
+    def __init__(self, user_id: Optional[str] = None):
         self.id = str(uuid.uuid4())
+        self.user_id = user_id
         self.cv_text: str = ""
         self.job_text: str = ""
         self.history: List[QARecord] = []
@@ -41,8 +42,8 @@ class SessionStore:
     def __init__(self):
         self._sessions: Dict[str, Session] = {}
 
-    def create(self) -> Session:
-        session = Session()
+    def create(self, user_id: Optional[str] = None) -> Session:
+        session = Session(user_id=user_id)
         self._sessions[session.id] = session
         return session
 

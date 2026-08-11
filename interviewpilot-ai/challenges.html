@@ -12,7 +12,9 @@
 <style>
 
   .chall-card { padding:20px; text-align:center; }
-  
+  .chall-spinner { width:20px; height:20px; border-radius:50%; border:3px solid var(--border); border-top-color:var(--indigo); animation: chall-spin 0.8s linear infinite; margin:0 auto; }
+  @keyframes chall-spin { to { transform: rotate(360deg); } }
+
 </style>
 </head>
 <body>
@@ -36,30 +38,30 @@
 </aside>
   <div class="main-content">
     <div class="topbar">
-      <div><div class="h4">Gunluk Meydan Okuma</div><div class="faint" style="font-size:13px;">Her gun yeni bir mini teknik soru, seriyi bozma</div></div>
+      <div><div class="h4">Gunluk Meydan Okuma</div><div class="faint" style="font-size:13px;">Her gun yapay zekanin urettigi yeni bir mini teknik soru, seriyi bozma</div></div>
       <div class="flex items-center gap-12">
         <div class="switch theme-switch" onclick="toggleTheme()"></div>
-        
       </div>
     </div>
     <div class="page-body">
       <div class="grid" style="grid-template-columns:1fr 1fr 1fr; gap:16px;">
-        <div class="card chall-card fade-up card-glow">
-          <i data-lucide="flame" style="width:28px; color:#f59e0b;"></i>
+        <div class="card chall-card fade-up card-glow" id="questionCard">
+          <i data-lucide="flame" style="width:28px; color:#fbbf24;"></i>
           <div class="h4" style="margin-top:10px;">Bugunku Soru</div>
-          <p class="faint" style="font-size:13px; margin-top:6px;">"Bir array icinde tekrarlanmayan tek elemani bul"</p>
-          <button class="btn btn-primary" style="width:100%; margin-top:14px;">Cozmeye Basla</button>
+          <div id="questionBody" style="margin-top:10px;">
+            <div class="chall-spinner"></div>
+          </div>
         </div>
         <div class="card chall-card fade-up delay-1">
           <i data-lucide="calendar-check" style="width:28px; color:var(--indigo);"></i>
           <div class="h4" style="margin-top:10px;">Bu Hafta</div>
-          <p class="faint" style="font-size:13px; margin-top:6px;">5/7 gun tamamlandi</p>
-          <div class="progress-track" style="margin-top:12px;"><div class="progress-fill" style="width:71%;"></div></div>
+          <p class="faint" style="font-size:13px; margin-top:6px;" id="weekLabel">-</p>
+          <div class="progress-track" style="margin-top:12px;"><div class="progress-fill" id="weekFill" style="width:0%;"></div></div>
         </div>
         <div class="card chall-card fade-up delay-2">
-          <i data-lucide="medal" style="width:28px; color:#8b5cf6;"></i>
+          <i data-lucide="medal" style="width:28px; color:#c4b5fd;"></i>
           <div class="h4" style="margin-top:10px;">Rozet Ilerlemesi</div>
-          <p class="faint" style="font-size:13px; margin-top:6px;">"30 Gun Serisi" rozetine 24 gun kaldi</p>
+          <p class="faint" style="font-size:13px; margin-top:6px;" id="badgeLabel">-</p>
         </div>
       </div>
     </div>
@@ -69,6 +71,106 @@
 <script>
   lucide.createIcons();
 
+  const questionBody = document.getElementById("questionBody");
+
+  function renderError(msg, retryFn) {
+    questionBody.innerHTML = `<p class="faint" style="font-size:13px; color:var(--danger);">${msg}</p>`;
+    const btn = document.createElement("button");
+    btn.className = "btn btn-secondary";
+    btn.style.cssText = "width:100%; margin-top:10px;";
+    btn.textContent = "Tekrar Dene";
+    btn.addEventListener("click", retryFn);
+    questionBody.appendChild(btn);
+  }
+
+  function renderQuestion(record) {
+    if (record.completed) {
+      const scoreColor = record.score >= 75 ? "var(--success)" : record.score >= 50 ? "var(--warning)" : "var(--danger)";
+      questionBody.innerHTML = `
+        <p class="faint" style="font-size:13px;">"${record.question}"</p>
+        <div class="badge" style="background:${scoreColor}22; color:${scoreColor}; margin-top:10px;">Bugun tamamlandi — ${record.score}/100</div>
+        <p class="faint" style="font-size:12.5px; margin-top:8px;">${record.feedback || ""}</p>
+      `;
+      return;
+    }
+    questionBody.innerHTML = `
+      <p class="faint" style="font-size:13px;">"${record.question}"</p>
+      <textarea class="input" id="answerInput" style="min-height:80px; resize:vertical; margin-top:10px; font-size:13px;" placeholder="Cevabini yaz..."></textarea>
+      <div class="room-error hidden" id="answerError" style="background:var(--danger-soft); color:var(--danger); border-radius:10px; padding:8px 12px; font-size:12.5px; margin-top:8px;"></div>
+      <button class="btn btn-primary" id="submitAnswerBtn" style="width:100%; margin-top:10px;">Cozmeye Basla</button>
+    `;
+    document.getElementById("submitAnswerBtn").addEventListener("click", submitAnswer);
+  }
+
+  async function loadToday() {
+    questionBody.innerHTML = '<div class="chall-spinner"></div>';
+    try {
+      const r = await fetch("/api/challenge/today");
+      if (!r.ok) {
+        const data = await r.json().catch(() => ({}));
+        throw new Error(data.detail || "Soru yuklenemedi");
+      }
+      const record = await r.json();
+      renderQuestion(record);
+    } catch (e) {
+      renderError(e.message, loadToday);
+    }
+  }
+
+  async function submitAnswer() {
+    const input = document.getElementById("answerInput");
+    const answer = input.value.trim();
+    const errEl = document.getElementById("answerError");
+    errEl.classList.add("hidden");
+    if (!answer) {
+      errEl.textContent = "Cevap bos olamaz";
+      errEl.classList.remove("hidden");
+      return;
+    }
+    const btn = document.getElementById("submitAnswerBtn");
+    btn.disabled = true;
+    btn.textContent = "Degerlendiriliyor...";
+    try {
+      const r = await fetch("/api/challenge/answer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ answer }),
+      });
+      if (!r.ok) {
+        const data = await r.json().catch(() => ({}));
+        throw new Error(data.detail || "Cevap gonderilemedi");
+      }
+      const record = await r.json();
+      renderQuestion(record);
+      loadStats();
+    } catch (e) {
+      errEl.textContent = e.message;
+      errEl.classList.remove("hidden");
+      btn.disabled = false;
+      btn.textContent = "Cozmeye Basla";
+    }
+  }
+
+  async function loadStats() {
+    try {
+      const r = await fetch("/api/challenge/stats");
+      if (!r.ok) throw new Error("stats alinamadi");
+      const s = await r.json();
+      document.getElementById("weekLabel").textContent = `${s.week_completed}/${s.week_total} gun tamamlandi`;
+      document.getElementById("weekFill").style.width = `${Math.round((s.week_completed / s.week_total) * 100)}%`;
+      if (s.badge_earned) {
+        document.getElementById("badgeLabel").textContent = `"${s.badge_threshold} Gun Serisi" rozetini kazandin!`;
+      } else {
+        document.getElementById("badgeLabel").textContent = `"${s.badge_threshold} Gun Serisi" rozetine ${s.days_to_badge} gun kaldi (su anki seri: ${s.streak} gun)`;
+      }
+    } catch (e) {
+      document.getElementById("weekLabel").textContent = "Yuklenemedi";
+      document.getElementById("badgeLabel").textContent = "Yuklenemedi";
+    }
+  }
+
+  loadToday();
+  loadStats();
 </script>
 </body>
 </html>
