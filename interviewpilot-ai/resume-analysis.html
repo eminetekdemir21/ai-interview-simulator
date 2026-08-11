@@ -32,11 +32,9 @@
   <a class="side-link" href="career-coach.html"><span class="icon-box"><i data-lucide="compass" style="width:17px"></i></span>AI Kariyer Kocu</a>
   <a class="side-link" href="portfolio.html"><span class="icon-box"><i data-lucide="github" style="width:17px"></i></span>Portfolyo</a>
   <div class="sidebar-section-label">Topluluk</div>
-  <a class="side-link" href="leaderboard.html"><span class="icon-box"><i data-lucide="trophy" style="width:17px"></i></span>Liderlik Tablosu</a>
   <a class="side-link" href="challenges.html"><span class="icon-box"><i data-lucide="swords" style="width:17px"></i></span>Gunluk Meydan Okuma</a>
   <div class="sidebar-section-label">Hesap</div>
   <a class="side-link" href="profile.html"><span class="icon-box"><i data-lucide="user" style="width:17px"></i></span>Profil</a>
-  <a class="side-link" href="admin.html"><span class="icon-box"><i data-lucide="shield" style="width:17px"></i></span>Admin Panel</a>
 </aside>
   <div class="main-content">
     <div class="topbar">
@@ -49,30 +47,22 @@
     <div class="page-body">
       <div class="grid" style="grid-template-columns:1fr 1.3fr; gap:20px;">
         <div class="card fade-up">
-          <div class="upload-zone">
+          <div class="upload-zone" id="uploadZone">
             <i data-lucide="upload-cloud" style="width:36px; color:var(--indigo);"></i>
             <p style="font-weight:700; margin-top:12px;">CV'ni surukle birak</p>
-            <p class="faint" style="font-size:12.5px; margin-top:4px;">PDF, DOCX — 10MB'a kadar</p>
-            <button class="btn btn-primary" style="margin-top:16px;">Dosya Sec</button>
+            <p class="faint" style="font-size:12.5px; margin-top:4px;">PDF — 10MB'a kadar</p>
+            <button class="btn btn-primary" style="margin-top:16px;" id="pickFileBtn">Dosya Sec</button>
+            <input type="file" id="cvFileInput" accept=".pdf" class="hidden">
           </div>
-          <div class="flex items-center gap-12" style="margin-top:16px; padding:12px; background:var(--surface-2); border-radius:10px;">
+          <div class="flex items-center gap-12 hidden" id="fileRow" style="margin-top:16px; padding:12px; background:var(--surface-2); border-radius:10px;">
             <i data-lucide="file-text" style="width:20px; color:var(--indigo);"></i>
-            <div style="flex:1; font-size:13px; font-weight:600;">emine_tekdemir_cv.pdf</div>
-            <span class="badge badge-success">Analiz Edildi</span>
+            <div style="flex:1; font-size:13px; font-weight:600;" id="fileNameLabel"></div>
+            <span class="badge badge-success hidden" id="analyzedBadge">Analiz Edildi</span>
           </div>
+          <div class="room-error hidden" id="cvError" style="background:var(--danger-soft); color:var(--danger); border-radius:12px; padding:10px 14px; font-size:13px; margin-top:12px;"></div>
         </div>
-        <div class="card fade-up delay-1">
-          <div class="flex items-center gap-16" style="margin-bottom:20px;">
-            <div class="score-badge-lg">84</div>
-            <div><div class="h4">CV Skoru: Iyi</div><p class="faint" style="font-size:13px;">ATS uyumlulugu ve icerik kalitesine gore</p></div>
-          </div>
-          <div style="font-size:13px; font-weight:700; color:var(--success); margin-bottom:8px;">Guclu Yonler</div>
-          <div class="checklist-item" style="display:flex; gap:8px; font-size:13.5px; padding:5px 0;"><i data-lucide="check-circle-2" style="width:16px; color:var(--success);"></i>Olculebilir basarilar var (%20 performans artisi vb.)</div>
-          <div class="checklist-item" style="display:flex; gap:8px; font-size:13.5px; padding:5px 0;"><i data-lucide="check-circle-2" style="width:16px; color:var(--success);"></i>Anahtar kelimeler is ilanlariyla uyumlu</div>
-          <div style="font-size:13px; font-weight:700; color:var(--warning); margin:14px 0 8px;">Iyilestirme Onerileri</div>
-          <div class="checklist-item" style="display:flex; gap:8px; font-size:13.5px; padding:5px 0;"><i data-lucide="alert-circle" style="width:16px; color:var(--warning);"></i>Ozet (summary) bolumu eksik</div>
-          <div class="checklist-item" style="display:flex; gap:8px; font-size:13.5px; padding:5px 0;"><i data-lucide="alert-circle" style="width:16px; color:var(--warning);"></i>Proje linklerini (GitHub) ekle</div>
-          <div class="checklist-item" style="display:flex; gap:8px; font-size:13.5px; padding:5px 0;"><i data-lucide="alert-circle" style="width:16px; color:var(--warning);"></i>Bazi bolumler cok uzun, 1 sayfaya sigdir</div>
+        <div class="card fade-up delay-1" id="resultCard">
+          <p class="faint" style="font-size:13.5px;">CV'ni yukledigin zaman AI analizi burada gorunecek.</p>
         </div>
       </div>
     </div>
@@ -82,6 +72,91 @@
 <script>
   lucide.createIcons();
 
+  const fileInput = document.getElementById("cvFileInput");
+  const uploadZone = document.getElementById("uploadZone");
+  const resultCard = document.getElementById("resultCard");
+
+  document.getElementById("pickFileBtn").addEventListener("click", () => fileInput.click());
+  uploadZone.addEventListener("dragover", (e) => { e.preventDefault(); uploadZone.style.borderColor = "var(--indigo)"; });
+  uploadZone.addEventListener("dragleave", () => { uploadZone.style.borderColor = ""; });
+  uploadZone.addEventListener("drop", (e) => {
+    e.preventDefault();
+    uploadZone.style.borderColor = "";
+    if (e.dataTransfer.files.length) {
+      fileInput.files = e.dataTransfer.files;
+      handleFile(fileInput.files[0]);
+    }
+  });
+  fileInput.addEventListener("change", () => {
+    if (fileInput.files.length) handleFile(fileInput.files[0]);
+  });
+
+  function showCvError(msg) {
+    const el = document.getElementById("cvError");
+    el.textContent = msg;
+    el.classList.remove("hidden");
+  }
+  function hideCvError() {
+    document.getElementById("cvError").classList.add("hidden");
+  }
+
+  function levelColor(level) {
+    if (level === "Mukemmel" || level === "Mükemmel") return "var(--success)";
+    if (level === "Iyi" || level === "İyi") return "var(--indigo)";
+    if (level === "Orta") return "var(--warning)";
+    return "var(--danger)";
+  }
+
+  async function handleFile(file) {
+    hideCvError();
+    document.getElementById("fileRow").classList.remove("hidden");
+    document.getElementById("fileNameLabel").textContent = file.name;
+    document.getElementById("analyzedBadge").classList.add("hidden");
+
+    resultCard.innerHTML = '<p class="faint" style="font-size:13.5px;">AI CV\'ni analiz ediyor...</p>';
+
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 45000);
+      const formData = new FormData();
+      formData.append("file", file);
+      const r = await fetch("/api/cv-analysis", { method: "POST", body: formData, signal: controller.signal });
+      clearTimeout(timer);
+      if (!r.ok) {
+        const data = await r.json().catch(() => ({}));
+        throw new Error(data.detail || "CV analiz edilemedi");
+      }
+      const data = await r.json();
+      renderResult(data);
+      document.getElementById("analyzedBadge").classList.remove("hidden");
+    } catch (e) {
+      resultCard.innerHTML = '<p class="faint" style="font-size:13.5px;">CV\'ni yukledigin zaman AI analizi burada gorunecek.</p>';
+      showCvError(e.name === "AbortError" ? "Istek zaman asimina ugradi, tekrar dene." : e.message);
+    }
+  }
+
+  function renderResult(data) {
+    const strengths = (data.strengths || []).map(s =>
+      `<div class="checklist-item" style="display:flex; gap:8px; font-size:13.5px; padding:5px 0;"><i data-lucide="check-circle-2" style="width:16px; color:var(--success);"></i>${s}</div>`
+    ).join("");
+    const improvements = (data.improvements || []).map(s =>
+      `<div class="checklist-item" style="display:flex; gap:8px; font-size:13.5px; padding:5px 0;"><i data-lucide="alert-circle" style="width:16px; color:var(--warning);"></i>${s}</div>`
+    ).join("");
+    const missing = (data.missing_sections || []).map(s =>
+      `<div class="checklist-item" style="display:flex; gap:8px; font-size:13.5px; padding:5px 0;"><i data-lucide="x-circle" style="width:16px; color:var(--danger);"></i>${s} bolumu eksik</div>`
+    ).join("");
+
+    resultCard.innerHTML = `
+      <div class="flex items-center gap-16" style="margin-bottom:20px;">
+        <div class="score-badge-lg" style="background:${levelColor(data.level)};">${data.score ?? "-"}</div>
+        <div><div class="h4">CV Skoru: ${data.level || "-"}</div><p class="faint" style="font-size:13px;">ATS uyumlulugu ve icerik kalitesine gore</p></div>
+      </div>
+      ${strengths ? `<div style="font-size:13px; font-weight:700; color:var(--success); margin-bottom:8px;">Guclu Yonler</div>${strengths}` : ""}
+      ${improvements ? `<div style="font-size:13px; font-weight:700; color:var(--warning); margin:14px 0 8px;">Iyilestirme Onerileri</div>${improvements}` : ""}
+      ${missing ? `<div style="font-size:13px; font-weight:700; color:var(--danger); margin:14px 0 8px;">Eksik Bolumler</div>${missing}` : ""}
+    `;
+    lucide.createIcons();
+  }
 </script>
 </body>
 </html>

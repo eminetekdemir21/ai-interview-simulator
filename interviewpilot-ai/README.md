@@ -18,10 +18,10 @@ cikarir. Google Gemini API kullanir.
 - **AI Kariyer Kocu** — kullanicinin gercek istatistiklerini baglam alan serbest sohbet
 - **Basit tek kullanicili giris** — sifre korumali erisim, duzenlenebilir profil
 
-> Not: `resume-analysis.html`, `job-match.html`, `portfolio.html`, `leaderboard.html`,
-> `challenges.html`, `roadmap.html`, `analytics.html`, `admin.html` sayfalari orijinal
-> tasarim prototipinden kalan, ornek veriyle calisan gorsel taslaklardir; backend'e
-> baglanmamislardir.
+> Not: `resume-analysis.html`, `job-match.html`, `portfolio.html`, `challenges.html`,
+> `roadmap.html`, `analytics.html` sayfalari su an gercek backend'e baglanma asamasinda
+> (bkz. proje ilerleme notlari). `leaderboard.html` ve `admin.html` kaldirildi — tek
+> kullanicili bir uygulamada anlamli degillerdi.
 
 ## Kurulum
 

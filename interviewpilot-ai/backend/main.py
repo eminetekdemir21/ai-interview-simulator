@@ -341,6 +341,23 @@ class CoachIn(BaseModel):
     history: list[ChatTurn] = []
 
 
+@app.post("/api/cv-analysis")
+async def cv_analysis(file: UploadFile = File(...)):
+    content = await file.read()
+    if file.filename.lower().endswith(".pdf"):
+        text = extract_text_from_pdf(content)
+    else:
+        text = content.decode("utf-8", errors="ignore")
+    if not text.strip():
+        raise HTTPException(400, "CV'den metin cikarilamadi (PDF taranmis bir goruntu olabilir)")
+    try:
+        result = gc.analyze_cv(text)
+    except Exception as e:
+        raise HTTPException(502, gc.friendly_error(e))
+    result["filename"] = file.filename
+    return result
+
+
 @app.post("/api/coach")
 def coach_chat(payload: CoachIn):
     profile = profile_store.get_profile()

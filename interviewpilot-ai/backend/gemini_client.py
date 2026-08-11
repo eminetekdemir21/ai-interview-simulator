@@ -224,6 +224,32 @@ Eger istatistik yoksa (henuz mulakat yapmamissa) onu once bir mulakat denemeye t
     return response.text.strip()
 
 
+def analyze_cv(cv_text: str) -> dict:
+    """Verilen CV metnini ATS uyumlulugu ve icerik kalitesi acisindan
+    degerlendirir; somut, CV'ye ozel geri bildirim uretir."""
+    model = _model(json_mode=True)
+    prompt = f"""Sen bir Isc Ikaynaklari / kariyer uzmanisin ve ATS (Aday Takip Sistemi)
+uyumlulugu konusunda deneyimlisin. Asagidaki CV metnini degerlendir.
+
+CV Metni:
+{cv_text[:6000]}
+
+Degerlendirmeni SADECE bu CV'nin gercek icerigine dayandir, uydurma ornek verme.
+Somut, CV'de gecen gercek bilgilere (proje adlari, teknolojiler, sirketler) atifta bulun.
+
+Yalnizca su JSON formatinda cevap ver:
+{{
+  "score": <0-100 arasi tam sayi, ATS uyumlulugu ve genel CV kalitesine gore>,
+  "level": "<Zayif|Orta|Iyi|Mukemmel>",
+  "strengths": ["<CV'de gercekten var olan somut guclu yon 1>", "<guclu yon 2>", "<guclu yon 3>"],
+  "improvements": ["<somut, uygulanabilir iyilestirme onerisi 1>", "<oneri 2>", "<oneri 3>"],
+  "missing_sections": ["<CV'de eksik oldugu tespit edilen bolum, orn. 'Ozet', 'Projeler'>"]
+}}
+"""
+    response = _generate(model, prompt)
+    return json.loads(response.text)
+
+
 def generate_final_report(cv_text: str, job_text: str, history, context: dict | None = None) -> dict:
     """Tum mulakat gecmisine gore genel bir rapor uretir."""
     model = _model(json_mode=True)
