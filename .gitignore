@@ -18,3 +18,7 @@ backend/data/
 # OS
 .DS_Store
 Thumbs.db
+
+# Kisisel staj defteri kayitlari (proje disinda, GitHub'a gitmemeli)
+Staj_Defteri_Gun32.docx
+staj_defteri/
