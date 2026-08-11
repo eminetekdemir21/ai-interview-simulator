@@ -331,6 +331,28 @@ def update_profile(payload: ProfileIn):
     return profile_store.save_profile(payload.model_dump(exclude_none=True))
 
 
+class ChatTurn(BaseModel):
+    role: str
+    text: str
+
+
+class CoachIn(BaseModel):
+    message: str
+    history: list[ChatTurn] = []
+
+
+@app.post("/api/coach")
+def coach_chat(payload: CoachIn):
+    profile = profile_store.get_profile()
+    stats = history_store.stats()
+    chat_history = [t.model_dump() for t in payload.history]
+    try:
+        reply = gc.career_coach_reply(payload.message, chat_history, profile, stats)
+    except Exception as e:
+        raise HTTPException(502, gc.friendly_error(e))
+    return {"reply": reply}
+
+
 # Frontend'i (interviewpilot-ai/ altindaki tum statik sayfalar) sun
 frontend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if os.path.isdir(frontend_dir):

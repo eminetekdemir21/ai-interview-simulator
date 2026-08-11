@@ -52,20 +52,17 @@
     </div>
     <div class="page-body">
       <div class="card fade-up chat-wrap">
-        <div class="chat-msgs">
-          <div class="cbubble ai">Merhaba Emine! Ben senin AI kariyer kocunum 👋 Son mulakat sonuclarina baktim — System Design konusunda gelisim firsati var. Sana nasil yardimci olabilirim?</div>
-          <div class="cbubble user">Google'a basvurmadan once ne kadar hazir olmam lazim?</div>
-          <div class="cbubble ai">Su anki 78/100 ortalama skorunla orta seviye hazirsin. Google icin genelde 85+ ve System Design'da en az 75 oneriyoruz. Onerilen yol haritani takip edersen 2-3 haftada bu seviyeye ulasabilirsin. Ister misin sana haftalik bir plan cikarayim?</div>
-        </div>
+        <div class="chat-msgs" id="chatMsgs"></div>
         <div>
+          <div class="room-error hidden" id="coachError" style="background:var(--danger-soft); color:var(--danger); border-radius:12px; padding:10px 14px; font-size:13px; margin-bottom:10px;"></div>
           <div style="margin-bottom:10px;">
             <span class="suggest-chip">Maas pazarligi icin ipucu ver</span>
             <span class="suggest-chip">CV'mde neyi degistirmeliyim?</span>
             <span class="suggest-chip">Hangi sirkete once basvurmaliyim?</span>
           </div>
           <div class="flex gap-12">
-            <input class="input" placeholder="Bir soru yaz...">
-            <button class="btn btn-primary btn-icon"><i data-lucide="send" style="width:16px"></i></button>
+            <input class="input" id="chatInput" placeholder="Bir soru yaz...">
+            <button class="btn btn-primary btn-icon" id="chatSendBtn"><i data-lucide="send" style="width:16px"></i></button>
           </div>
         </div>
       </div>
@@ -76,6 +73,104 @@
 <script>
   lucide.createIcons();
 
+  const chatMsgs = document.getElementById("chatMsgs");
+  const chatInput = document.getElementById("chatInput");
+  const sendBtn = document.getElementById("chatSendBtn");
+  let convo = [];
+  let profileCache = {};
+  let statsCache = {};
+
+  function addBubble(role, text) {
+    const div = document.createElement("div");
+    div.className = "cbubble " + (role === "user" ? "user" : "ai");
+    div.textContent = text;
+    chatMsgs.appendChild(div);
+    chatMsgs.scrollTop = chatMsgs.scrollHeight;
+  }
+
+  function showCoachError(msg) {
+    const el = document.getElementById("coachError");
+    el.textContent = msg;
+    el.classList.remove("hidden");
+  }
+  function hideCoachError() {
+    document.getElementById("coachError").classList.add("hidden");
+  }
+
+  async function init() {
+    try {
+      const [profileRes, statsRes] = await Promise.all([
+        fetch("/api/profile"),
+        fetch("/api/history/stats"),
+      ]);
+      profileCache = await profileRes.json();
+      statsCache = await statsRes.json();
+    } catch (e) {
+      console.error(e);
+    }
+    const name = profileCache.name ? profileCache.name.split(" ")[0] : "";
+    let greeting;
+    if (statsCache.total_interviews > 0) {
+      greeting = `Merhaba${name ? " " + name : ""}! Ben senin AI kariyer kocunum 👋 Su ana kadar ${statsCache.total_interviews} mulakat tamamlamissin, ortalama skorun ${statsCache.avg_score}/100.` +
+        (statsCache.weakest_topic ? ` En sik tekrar eden gelisim alanin: "${statsCache.weakest_topic}".` : "") +
+        " Sana nasil yardimci olabilirim?";
+    } else {
+      greeting = `Merhaba${name ? " " + name : ""}! Ben senin AI kariyer kocunum 👋 Henuz bir mulakat pratigi tamamlamamissin, sana ozel tavsiye verebilmem icin once bir mulakat denemeni oneririm. Yine de genel sorularini sorabilirsin.`;
+    }
+    addBubble("ai", greeting);
+    convo.push({ role: "coach", text: greeting });
+  }
+  init();
+
+  async function sendMessage(text) {
+    if (!text.trim()) return;
+    hideCoachError();
+    addBubble("user", text);
+    convo.push({ role: "user", text });
+    chatInput.value = "";
+    chatInput.disabled = true;
+    sendBtn.disabled = true;
+
+    const thinking = document.createElement("div");
+    thinking.className = "cbubble ai";
+    thinking.id = "thinkingBubble";
+    thinking.textContent = "Yaziyor...";
+    chatMsgs.appendChild(thinking);
+    chatMsgs.scrollTop = chatMsgs.scrollHeight;
+
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 45000);
+      const r = await fetch("/api/coach", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: text, history: convo.slice(0, -1) }),
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
+      thinking.remove();
+      if (!r.ok) {
+        const data = await r.json().catch(() => ({}));
+        throw new Error(data.detail || "Kocudan yanit alinamadi");
+      }
+      const data = await r.json();
+      addBubble("ai", data.reply);
+      convo.push({ role: "coach", text: data.reply });
+    } catch (e) {
+      thinking.remove();
+      showCoachError(e.name === "AbortError" ? "Istek zaman asimina ugradi, tekrar dene." : e.message);
+    } finally {
+      chatInput.disabled = false;
+      sendBtn.disabled = false;
+      chatInput.focus();
+    }
+  }
+
+  sendBtn.addEventListener("click", () => sendMessage(chatInput.value));
+  chatInput.addEventListener("keydown", (e) => { if (e.key === "Enter") sendMessage(chatInput.value); });
+  document.querySelectorAll(".suggest-chip").forEach(chip => {
+    chip.addEventListener("click", () => sendMessage(chip.textContent));
+  });
 </script>
 </body>
 </html>

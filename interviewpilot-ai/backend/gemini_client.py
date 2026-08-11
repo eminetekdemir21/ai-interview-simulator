@@ -168,6 +168,62 @@ Yalnizca su JSON formatinda cevap ver:
     return json.loads(response.text)
 
 
+def _stats_block(stats: dict | None) -> str:
+    if not stats or not stats.get("total_interviews"):
+        return "Aday henuz hic mulakat pratigi tamamlamamis, gecmis performans verisi yok."
+    lines = [
+        f"- Toplam tamamlanan mulakat: {stats.get('total_interviews')}",
+        f"- Ortalama skor: {stats.get('avg_score')}/100",
+        f"- En yuksek skor: {stats.get('best_score')}/100",
+        f"- Calisma serisi: {stats.get('streak_days')} gun",
+    ]
+    if stats.get("weakest_topic"):
+        lines.append(f"- En sik tekrar eden zayif yon: {stats['weakest_topic']}")
+    if stats.get("strongest_topic"):
+        lines.append(f"- En sik tekrar eden guclu yon: {stats['strongest_topic']}")
+    sub = stats.get("avg_sub_scores") or {}
+    if sub:
+        lines.append(
+            f"- Ortalama alt skorlar: Teknik {sub.get('technical', 0)}, Iletisim {sub.get('communication', 0)}, "
+            f"Ozguven {sub.get('confidence', 0)}, Sistem Tasarimi {sub.get('system_design', 0)}"
+        )
+    return "\n".join(lines)
+
+
+def career_coach_reply(message: str, chat_history: list, profile: dict | None, stats: dict | None) -> str:
+    """Kullanicinin gercek mulakat gecmisini/istatistiklerini baglam olarak
+    kullanan, serbest sohbet tarzinda bir kariyer kocu yaniti uretir."""
+    model = _model(json_mode=False)
+    profile = profile or {}
+    convo_lines = []
+    for turn in chat_history[-12:]:
+        role = "Kullanici" if turn.get("role") == "user" else "Kocu"
+        convo_lines.append(f"{role}: {turn.get('text', '')}")
+    convo_text = "\n".join(convo_lines) if convo_lines else "(henuz konusma yok)"
+
+    prompt = f"""Sen InterviewPilot AI uygulamasinda calisan, samimi ve destekleyici bir yapay zeka kariyer kocususun.
+Kullanicinin gercek mulakat pratigi verilerine gore kisisellestirilmis, somut tavsiyeler veriyorsun.
+Kisa (en fazla 4-5 cumle), dogal ve konusma diliyle Turkce yaz. Gereksiz uzun liste yapma, sohbet gibi yaz.
+
+Kullanici profili:
+- Isim: {profile.get('name') or 'belirtilmemis'}
+- Hedef rol: {profile.get('target_role') or 'belirtilmemis'}
+
+Gercek mulakat istatistikleri:
+{_stats_block(stats)}
+
+Simdiye kadarki sohbet:
+{convo_text}
+
+Kullanicinin yeni mesaji: {message}
+
+Yukaridaki gercek verilere dayanarak, uydurma rakam veya gerceklesmemis bir olay belirtmeden cevap ver.
+Eger istatistik yoksa (henuz mulakat yapmamissa) onu once bir mulakat denemeye tesvik et.
+"""
+    response = _generate(model, prompt)
+    return response.text.strip()
+
+
 def generate_final_report(cv_text: str, job_text: str, history, context: dict | None = None) -> dict:
     """Tum mulakat gecmisine gore genel bir rapor uretir."""
     model = _model(json_mode=True)
