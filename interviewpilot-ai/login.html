@@ -26,22 +26,50 @@
       <p style="margin-top:6px;">Mulakat pratigine kaldigin yerden devam et</p>
     </div>
     <div class="card card-glow" style="padding:32px;">
-      <label class="field-label">E-posta</label>
-      <input class="input" type="email" placeholder="ornek@email.com" style="margin-bottom:16px;">
       <label class="field-label">Sifre</label>
-      <input class="input" type="password" placeholder="••••••••" style="margin-bottom:8px;">
-      <div class="flex justify-between items-center" style="margin-bottom:20px;">
-        <label style="font-size:13px; color:var(--text-muted); display:flex; align-items:center; gap:6px;"><input type="checkbox"> Beni hatirla</label>
-        <a href="forgot-password.html" style="font-size:13px; color:var(--indigo-600); font-weight:600;">Sifremi unuttum</a>
-      </div>
-      <a href="dashboard.html" class="btn btn-primary" style="width:100%;">Giris Yap</a>
-      <div class="divider">veya</div>
-      <button class="btn btn-secondary social-btn" style="width:100%; margin-bottom:10px;"><i data-lucide="github" style="width:16px"></i> GitHub ile devam et</button>
-      <button class="btn btn-secondary social-btn" style="width:100%;"><i data-lucide="linkedin" style="width:16px"></i> LinkedIn ile devam et</button>
+      <input class="input" type="password" id="pwInput" placeholder="••••••••" style="margin-bottom:8px;">
+      <div class="room-error hidden" id="loginError" style="background:var(--danger-soft); color:var(--danger); border-radius:12px; padding:10px 14px; font-size:13px; margin-bottom:14px;"></div>
+      <button class="btn btn-primary" id="loginBtn" style="width:100%;">Giris Yap</button>
     </div>
-    <p class="text-center" style="margin-top:20px; font-size:14px;">Hesabin yok mu? <a href="register.html" style="color:var(--indigo-600); font-weight:700;">Kayit ol</a></p>
+    <p class="text-center" style="margin-top:20px; font-size:13px; color:var(--text-faint);">Bu tek kullanicili bir demo projedir, kayit gerekmez.</p>
   </div>
 </div>
-<script>lucide.createIcons();</script>
+<script>
+  lucide.createIcons();
+
+  function showError(msg) {
+    const el = document.getElementById("loginError");
+    el.textContent = msg;
+    el.classList.remove("hidden");
+  }
+
+  async function doLogin() {
+    const password = document.getElementById("pwInput").value;
+    const btn = document.getElementById("loginBtn");
+    btn.disabled = true;
+    btn.textContent = "Giris yapiliyor...";
+    try {
+      const r = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
+      });
+      if (!r.ok) {
+        const data = await r.json().catch(() => ({}));
+        throw new Error(data.detail || "Giris basarisiz");
+      }
+      localStorage.setItem("ip_authed", "1");
+      const params = new URLSearchParams(location.search);
+      window.location.href = params.get("next") || "dashboard.html";
+    } catch (e) {
+      showError(e.message);
+      btn.disabled = false;
+      btn.textContent = "Giris Yap";
+    }
+  }
+
+  document.getElementById("loginBtn").addEventListener("click", doLogin);
+  document.getElementById("pwInput").addEventListener("keydown", (e) => { if (e.key === "Enter") doLogin(); });
+</script>
 </body>
 </html>

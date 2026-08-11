@@ -44,7 +44,7 @@ def _styles():
         "h2": ParagraphStyle("h2", parent=base["Heading2"], fontName="DejaVuSans-Bold", fontSize=13, textColor=colors.HexColor("#6b57a8"), spaceBefore=14, spaceAfter=6),
         "body": ParagraphStyle("body", parent=base["Normal"], fontName="DejaVuSans", fontSize=10.5, leading=15, textColor=colors.HexColor("#4a3f5a")),
         "bullet": ParagraphStyle("bullet", parent=base["Normal"], fontName="DejaVuSans", fontSize=10.5, leading=15, leftIndent=14, spaceAfter=3, textColor=colors.HexColor("#4a3f5a")),
-        "score": ParagraphStyle("score", parent=base["Normal"], fontName="DejaVuSans-Bold", fontSize=28, textColor=colors.HexColor("#6b57a8"), alignment=1),
+        "score": ParagraphStyle("score", parent=base["Normal"], fontName="DejaVuSans-Bold", fontSize=28, leading=34, spaceAfter=6, textColor=colors.HexColor("#6b57a8"), alignment=1),
         "qa_q": ParagraphStyle("qa_q", parent=base["Normal"], fontName="DejaVuSans-Bold", fontSize=10.5, leading=14, textColor=colors.HexColor("#2f4a5c")),
         "qa_a": ParagraphStyle("qa_a", parent=base["Normal"], fontName="DejaVuSans", fontSize=10, leading=14, textColor=colors.HexColor("#4a3f5a"), leftIndent=8),
         "qa_meta": ParagraphStyle("qa_meta", parent=base["Normal"], fontName="DejaVuSans", fontSize=9, leading=13, textColor=colors.HexColor("#6b8f7a"), leftIndent=8),

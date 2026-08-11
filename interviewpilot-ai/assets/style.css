@@ -3,6 +3,8 @@
    Apple + Linear + Stripe + Vercel inspired. Light/Dark via [data-theme].
    ========================================================================== */
 
+.hidden { display: none !important; }
+
 :root {
   /* Brand */
   --indigo: #6366f1;

@@ -1,14 +1,45 @@
 import os
 import json
+import concurrent.futures
 import google.generativeai as genai
 
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
+
+# Gemini SDK'sinin "request_options timeout" ayari bazi durumlarda (ic
+# retry/backoff mantigi yuzunden) beklenenden cok daha uzun surebiliyor.
+# Bunu kesin olarak sinirlamak icin cagriyi ayri bir thread'de yapip,
+# sonucu en fazla TIMEOUT_SECONDS kadar bekliyoruz; sure dolarsa
+# (arka plandaki thread hala calisiyor olsa bile) kullaniciya hemen
+# net bir hata donduruyoruz.
+_executor = concurrent.futures.ThreadPoolExecutor(max_workers=8)
+TIMEOUT_SECONDS = 25
+
+
+def _generate(model, prompt):
+    future = _executor.submit(model.generate_content, prompt)
+    try:
+        return future.result(timeout=TIMEOUT_SECONDS)
+    except concurrent.futures.TimeoutError:
+        raise TimeoutError(
+            f"Gemini istegi {TIMEOUT_SECONDS} saniye icinde tamamlanmadi (deadline exceeded)"
+        )
 
 
 def friendly_error(e: Exception) -> str:
     """Gemini/HTTP hatalarini kullaniciya okunakli Turkce mesaja cevirir."""
     text = str(e)
     lower = text.lower()
+    # Teshis icin gercek hatayi terminale yazdir (kullaniciya gosterilen
+    # mesaj sadelestirilmis oldugu icin asil sebep burada gorunur).
+    print("=" * 60)
+    print("[GEMINI HATASI - TAM DETAY]")
+    print(repr(e))
+    print("=" * 60)
+    if "deadline" in lower or "timeout" in lower or "504" in text:
+        return (
+            "Gemini API zamaninda yanit vermedi (25 saniye icinde). "
+            "Sunucu tarafinda gecici bir yavaslama olabilir, lutfen tekrar dene."
+        )
     if "resource_exhausted" in lower or "429" in text or "quota" in lower:
         return (
             "Gemini API gunluk/dakikalik kullanim limitine ulasildi. "
@@ -108,7 +139,7 @@ eksik kalan konuyu derinlestirebilirsin.
 Yalnizca su JSON formatinda cevap ver:
 {{"question": "<soru metni>"}}
 """
-    response = model.generate_content(prompt)
+    response = _generate(model, prompt)
     data = json.loads(response.text)
     return data["question"]
 
@@ -133,7 +164,7 @@ Eksik kalan veya bahsedilmesi gereken noktalari belirt.
 Yalnizca su JSON formatinda cevap ver:
 {{"score": <0-100 arasi tam sayi>, "feedback": "<geri bildirim>", "missing_points": "<eksik noktalar>"}}
 """
-    response = model.generate_content(prompt)
+    response = _generate(model, prompt)
     return json.loads(response.text)
 
 
@@ -164,5 +195,5 @@ Yalnizca su JSON formatinda cevap ver:
   "summary": "<2-3 cumlelik genel degerlendirme ve tavsiye>"
 }}
 """
-    response = model.generate_content(prompt)
+    response = _generate(model, prompt)
     return json.loads(response.text)

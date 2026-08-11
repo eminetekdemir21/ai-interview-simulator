@@ -8,12 +8,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, Response
 
+from pydantic import BaseModel
+
 from pdf_utils import extract_text_from_pdf
 from session_store import store, QARecord
 from companies import get_company
 import gemini_client as gc
 import history_store
 import pdf_report
+import profile_store
 from models import (
     QuestionOut,
     AnswerIn,
@@ -30,6 +33,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def no_cache_middleware(request, call_next):
+    """Gelistirme asamasinda tarayicinin eski HTML/JS dosyalarini
+    onbellekten gostermesini engeller (stale cache sorunlarinin sebebi buydu)."""
+    response = await call_next(request)
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    return response
 
 
 def _session_context(session) -> dict:
@@ -286,6 +299,36 @@ def get_history_pdf(item_id: str):
 def list_companies():
     from companies import COMPANIES
     return [{"id": cid, **data} for cid, data in COMPANIES.items()]
+
+
+class LoginIn(BaseModel):
+    password: str
+
+
+@app.post("/api/login")
+def login(payload: LoginIn):
+    expected = os.getenv("AUTH_PASSWORD", "")
+    if not expected:
+        raise HTTPException(500, ".env dosyasinda AUTH_PASSWORD tanimli degil")
+    if payload.password != expected:
+        raise HTTPException(401, "Sifre hatali")
+    return {"ok": True}
+
+
+@app.get("/api/profile")
+def get_profile():
+    return profile_store.get_profile()
+
+
+class ProfileIn(BaseModel):
+    name: str | None = None
+    email: str | None = None
+    target_role: str | None = None
+
+
+@app.post("/api/profile")
+def update_profile(payload: ProfileIn):
+    return profile_store.save_profile(payload.model_dump(exclude_none=True))
 
 
 # Frontend'i (interviewpilot-ai/ altindaki tum statik sayfalar) sun

@@ -8,6 +8,7 @@
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 
 <link rel="stylesheet" href="assets/style.css">
+<script src="assets/auth-guard.js"></script>
 <style>
 
   .settings-row { display:flex; justify-content:space-between; align-items:center; padding:14px 0; border-bottom:1px solid var(--border); }
@@ -47,25 +48,33 @@
     <div class="page-body">
       <div class="grid" style="grid-template-columns:1fr 1.6fr; gap:20px;">
         <div class="card fade-up text-center">
-          <div class="avatar" style="width:84px; height:84px; font-size:28px; margin:0 auto 14px;">ET</div>
-          <div class="h4">Emine Tekdemir</div>
-          <p class="faint" style="font-size:13px;">eminetekdemir8821@gmail.com</p>
-          <span class="badge badge-primary" style="margin-top:10px;">Level 7 · Pro Uye</span>
-          <button class="btn btn-secondary" style="width:100%; margin-top:18px;">Fotografi Degistir</button>
+          <div class="avatar" style="width:84px; height:84px; font-size:28px; margin:0 auto 14px;" id="avatarInitials">--</div>
+          <div class="h4" id="displayName">Isim girilmedi</div>
+          <p class="faint" style="font-size:13px;" id="displayEmail"></p>
+          <span class="badge badge-primary" style="margin-top:10px;" id="statsBadge">-- mulakat</span>
         </div>
         <div>
           <div class="card fade-up delay-1" style="margin-bottom:16px;">
             <div class="h4" style="margin-bottom:6px;">Kisisel Bilgiler</div>
-            <div class="settings-row"><span class="muted">Ad Soyad</span><span style="font-weight:600;">Emine Tekdemir</span></div>
-            <div class="settings-row"><span class="muted">E-posta</span><span style="font-weight:600;">eminetekdemir8821@gmail.com</span></div>
-            <div class="settings-row"><span class="muted">Hedef Rol</span><span style="font-weight:600;">Backend Developer</span></div>
+            <label class="field-label">Ad Soyad</label>
+            <input class="input" id="nameInput" style="margin-bottom:12px;">
+            <label class="field-label">E-posta</label>
+            <input class="input" id="emailInput" style="margin-bottom:12px;">
+            <label class="field-label">Hedef Rol</label>
+            <input class="input" id="roleInput" style="margin-bottom:14px;" placeholder="orn. Backend Developer">
+            <button class="btn btn-primary" id="saveProfileBtn">Kaydet</button>
+            <span class="faint" id="saveStatus" style="font-size:12.5px; margin-left:10px;"></span>
+          </div>
+          <div class="card fade-up delay-2" style="margin-bottom:16px;">
+            <div class="h4" style="margin-bottom:6px;">Gercek Istatistikler</div>
+            <div class="settings-row"><span class="muted">Toplam mulakat</span><span style="font-weight:600;" id="statTotal">-</span></div>
+            <div class="settings-row"><span class="muted">Ortalama skor</span><span style="font-weight:600;" id="statAvg">-</span></div>
+            <div class="settings-row"><span class="muted">En yuksek skor</span><span style="font-weight:600;" id="statBest">-</span></div>
+            <div class="settings-row"><span class="muted">Seri (streak)</span><span style="font-weight:600;" id="statStreak">-</span></div>
           </div>
           <div class="card fade-up delay-2">
             <div class="h4" style="margin-bottom:6px;">Tercihler</div>
-            <div class="settings-row"><span>E-posta bildirimleri</span><div class="switch active"></div></div>
-            <div class="settings-row"><span>Gunluk hatirlatma</span><div class="switch active"></div></div>
             <div class="settings-row"><span>Karanlik mod</span><div class="switch theme-switch" onclick="toggleTheme()"></div></div>
-            <div class="settings-row"><span>Sesli mulakat modu (varsayilan)</span><div class="switch"></div></div>
           </div>
         </div>
       </div>
@@ -76,6 +85,65 @@
 <script>
   lucide.createIcons();
 
+  function initials(name) {
+    if (!name) return "--";
+    return name.trim().split(/\s+/).slice(0, 2).map(w => w[0].toUpperCase()).join("");
+  }
+
+  async function loadProfile() {
+    try {
+      const [profileRes, statsRes] = await Promise.all([
+        fetch("/api/profile"),
+        fetch("/api/history/stats"),
+      ]);
+      const profile = await profileRes.json();
+      const stats = await statsRes.json();
+
+      document.getElementById("nameInput").value = profile.name || "";
+      document.getElementById("emailInput").value = profile.email || "";
+      document.getElementById("roleInput").value = profile.target_role || "";
+      document.getElementById("displayName").textContent = profile.name || "Isim girilmedi";
+      document.getElementById("displayEmail").textContent = profile.email || "";
+      document.getElementById("avatarInitials").textContent = initials(profile.name);
+      document.getElementById("statsBadge").textContent = `${stats.total_interviews || 0} mulakat tamamlandi`;
+
+      document.getElementById("statTotal").textContent = stats.total_interviews ?? 0;
+      document.getElementById("statAvg").textContent = stats.avg_score != null ? Math.round(stats.avg_score) : "-";
+      document.getElementById("statBest").textContent = stats.best_score ?? "-";
+      document.getElementById("statStreak").textContent = `${stats.streak_days || 0} gun`;
+    } catch (e) {
+      console.error(e);
+    }
+  }
+  loadProfile();
+
+  document.getElementById("saveProfileBtn").addEventListener("click", async () => {
+    const btn = document.getElementById("saveProfileBtn");
+    const status = document.getElementById("saveStatus");
+    btn.disabled = true;
+    try {
+      const payload = {
+        name: document.getElementById("nameInput").value.trim(),
+        email: document.getElementById("emailInput").value.trim(),
+        target_role: document.getElementById("roleInput").value.trim(),
+      };
+      const r = await fetch("/api/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!r.ok) throw new Error("Kaydedilemedi");
+      status.textContent = "Kaydedildi";
+      document.getElementById("displayName").textContent = payload.name || "Isim girilmedi";
+      document.getElementById("displayEmail").textContent = payload.email || "";
+      document.getElementById("avatarInitials").textContent = initials(payload.name);
+      setTimeout(() => { status.textContent = ""; }, 2500);
+    } catch (e) {
+      status.textContent = "Hata: " + e.message;
+    } finally {
+      btn.disabled = false;
+    }
+  });
 </script>
 </body>
 </html>

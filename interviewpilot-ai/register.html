@@ -3,41 +3,27 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Kayit Ol — InterviewPilot AI</title>
+<title>Kayit — InterviewPilot AI</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Manrope:wght@700;800&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 <link rel="stylesheet" href="assets/style.css">
 <style>
   .auth-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; padding: 40px 16px; }
   .auth-glow { position: absolute; top: -200px; left: 50%; transform: translateX(-50%); width: 800px; height: 500px; background: var(--grad-brand); opacity: .16; filter: blur(120px); border-radius: 50%; }
-  .auth-card { width: 440px; position: relative; z-index: 1; }
-  .row2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .auth-card { width: 420px; position: relative; z-index: 1; text-align:center; }
 </style>
 </head>
 <body>
 <div class="auth-wrap">
   <div class="auth-glow"></div>
   <div class="auth-card">
-    <div class="text-center" style="margin-bottom:24px;">
-      <div class="brand" style="justify-content:center; margin-bottom:16px;"><div class="brand-mark">IP</div>InterviewPilot <span class="gradient-text">AI</span></div>
-      <h2 class="h3">Ucretsiz hesap olustur</h2>
-      <p style="margin-top:6px;">Kredi karti gerekmez, 30 saniyede basla</p>
-    </div>
+    <div class="brand" style="justify-content:center; margin-bottom:16px;"><div class="brand-mark">IP</div>InterviewPilot <span class="gradient-text">AI</span></div>
     <div class="card card-glow" style="padding:32px;">
-      <div class="row2" style="margin-bottom:16px;">
-        <div><label class="field-label">Ad</label><input class="input" placeholder="Emine"></div>
-        <div><label class="field-label">Soyad</label><input class="input" placeholder="Tekdemir"></div>
-      </div>
-      <label class="field-label">E-posta</label>
-      <input class="input" type="email" placeholder="ornek@email.com" style="margin-bottom:16px;">
-      <label class="field-label">Sifre</label>
-      <input class="input" type="password" placeholder="En az 8 karakter" style="margin-bottom:16px;">
-      <label style="font-size:12.5px; color:var(--text-muted); display:flex; align-items:flex-start; gap:8px; margin-bottom:20px;">
-        <input type="checkbox" style="margin-top:2px;"> <span><a href="#" style="color:var(--indigo-600);">Kullanim sartlarini</a> ve <a href="#" style="color:var(--indigo-600);">gizlilik politikasini</a> kabul ediyorum</span>
-      </label>
-      <a href="verify-email.html" class="btn btn-primary" style="width:100%;">Hesap Olustur</a>
+      <i data-lucide="user-check" style="width:36px; height:36px; color:var(--indigo);"></i>
+      <h3 class="h3" style="margin-top:14px;">Bu tek kullanicili bir uygulama</h3>
+      <p class="faint" style="margin-top:8px; font-size:14px;">Ayri bir hesap olusturmana gerek yok. Sadece giris sifresiyle icerideki mulakat pratiklerine devam edebilirsin.</p>
+      <a href="login.html" class="btn btn-primary" style="width:100%; margin-top:20px;">Giris Sayfasina Git</a>
     </div>
-    <p class="text-center" style="margin-top:20px; font-size:14px;">Zaten hesabin var mi? <a href="login.html" style="color:var(--indigo-600); font-weight:700;">Giris yap</a></p>
   </div>
 </div>
 <script>lucide.createIcons();</script>

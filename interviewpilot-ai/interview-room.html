@@ -7,13 +7,14 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Manrope:wght@700;800&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 <link rel="stylesheet" href="assets/style.css">
+<script src="assets/auth-guard.js"></script>
 <style>
   body { background: var(--bg); overflow: hidden; }
   .room-shell { height: 100vh; display: flex; flex-direction: column; }
   .room-top { display:flex; align-items:center; justify-content:space-between; padding:14px 24px; border-bottom:1px solid var(--border); background:var(--surface); }
   .room-timer { font-weight:800; font-family:monospace; font-size:15px; display:flex; align-items:center; gap:6px; }
   .room-body { flex:1; display:grid; grid-template-columns: 1fr 360px; overflow:hidden; }
-  .stage { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:32px; position:relative; }
+  .stage { display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:32px; position:relative; overflow-y:auto; }
   .ai-avatar-wrap { position:relative; width:220px; height:220px; }
   .ai-avatar { width:220px; height:220px; border-radius:50%; background:var(--grad-brand); display:flex; align-items:center; justify-content:center; box-shadow:0 20px 60px rgba(99,102,241,.35); }
   .ai-avatar i { width:90px; height:90px; color:#fff; }
@@ -101,7 +102,7 @@
   </div>
 
   <div class="answer-panel">
-    <textarea class="answer-box" id="answerBox" placeholder="Cevabini buraya yaz..."></textarea>
+    <textarea class="answer-box" id="answerBox" placeholder="Cevabini buraya yaz..." autocomplete="off"></textarea>
     <div class="controls-row">
       <button class="mic-btn" id="micBtn" title="Sesli giris bu demoda pasif, metinle cevapla"><i data-lucide="mic" style="width:22px"></i></button>
       <button class="btn btn-secondary btn-sm" id="skipBtn"><i data-lucide="skip-forward" style="width:14px"></i> Atla</button>
@@ -138,6 +139,21 @@
   const micBtn = document.getElementById("micBtn");
   micBtn.addEventListener("click", () => micBtn.classList.toggle("recording"));
 
+  async function fetchWithTimeout(url, options = {}, timeoutMs = 45000) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      return await fetch(url, { ...options, signal: controller.signal });
+    } catch (e) {
+      if (e.name === "AbortError") {
+        throw new Error("Istek zaman asimina ugradi (45 saniye icinde cevap gelmedi). Sunucu/Gemini yaniti cok gecikmis olabilir, tekrar dene.");
+      }
+      throw e;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
   async function errorFromResponse(r, fallback) {
     let bodyText = "";
     try { bodyText = await r.text(); } catch (_) {}
@@ -165,13 +181,20 @@
     const label = who === "ai" ? "AI Mulakatci" : who === "eval" ? "Degerlendirme" : "Sen";
     div.innerHTML = `<div class="who">${label}</div>${text}` + (scoreBadge ? `<div class="msg-score"><span class="badge badge-success">${scoreBadge}/100</span></div>` : "");
     t.appendChild(div);
-    t.scrollTop = t.scrollHeight;
+    requestAnimationFrame(() => { t.scrollTop = t.scrollHeight; });
   }
 
   // ---------- Oturum verisi ----------
   const sessionId = sessionStorage.getItem("ip_session_id");
   const meta = JSON.parse(sessionStorage.getItem("ip_meta") || "{}");
   let currentQ = JSON.parse(sessionStorage.getItem("ip_first_question") || "null");
+
+  // Tek buton uc farkli modda calisir: "answer" (cevabi gonder),
+  // "next" (degerlendirme bitti, sonraki soruya gec), "finished" (rapor gor).
+  // NOT: bu tanim, asagida renderQuestion() ilk kez cagirilmadan ONCE
+  // gelmeli — aksi halde "let" degiskeni henuz baslatilmadan (temporal
+  // dead zone) icinde okunmaya calisilir ve sayfa sessizce kirilir.
+  let btnMode = "answer";
 
   if (!sessionId || !currentQ) {
     // Dogrudan bu sayfaya gelinmis, once kurulum yapilmali
@@ -192,9 +215,13 @@
     answerBox.value = "";
     answerBox.disabled = false;
     answerBox.classList.remove("hidden");
-    document.getElementById("submitBtn").classList.remove("hidden");
-    document.getElementById("submitBtn").disabled = false;
+    const submitBtn = document.getElementById("submitBtn");
+    submitBtn.classList.remove("hidden");
+    submitBtn.disabled = false;
+    submitBtn.textContent = "Cevabi Gonder";
+    btnMode = "answer";
     document.getElementById("skipBtn").disabled = false;
+    document.getElementById("skipBtn").classList.remove("hidden");
     document.getElementById("nextRow").classList.add("hidden");
     document.getElementById("charCount").textContent = "0 karakter";
     hideRoomError();
@@ -211,11 +238,11 @@
     addMsg("user", answerText || "(bos birakildi)");
 
     try {
-      const r = await fetch(`${API}/api/answer`, {
+      const r = await fetchWithTimeout(`${API}/api/answer`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ session_id: sessionId, answer: answerText }),
-      });
+      }, 65000);
       if (!r.ok) throw new Error(await errorFromResponse(r, "Cevap degerlendirilemedi"));
       const data = await r.json();
 
@@ -223,38 +250,52 @@
 
       answerBox.disabled = true;
       answerBox.classList.add("hidden");
-      submitBtn.classList.add("hidden");
+      document.getElementById("skipBtn").classList.add("hidden");
+
+      // Cevap alindi: buton yerinde kalir, sadece etiketi ve gorevi degisir.
+      submitBtn.disabled = false;
 
       if (data.finished) {
         document.getElementById("statusLine").textContent = "Mulakat tamamlandi 🎉";
-        document.getElementById("nextRow").classList.remove("hidden");
-        const nextBtn = document.getElementById("nextBtn");
-        nextBtn.textContent = "Sonucu Gor";
-        nextBtn.onclick = () => { window.location.href = "report.html"; };
+        submitBtn.textContent = "Sonucu Gor";
+        btnMode = "finished";
       } else {
         currentQ = {
           question: data.next_question,
           question_number: data.question_number + 1,
           total_questions: data.total_questions,
         };
-        document.getElementById("nextRow").classList.remove("hidden");
-        const nextBtn = document.getElementById("nextBtn");
-        nextBtn.textContent = "Sonraki Soru";
-        nextBtn.onclick = () => {
-          renderQuestion(currentQ);
-          addMsg("ai", currentQ.question);
-        };
+        document.getElementById("statusLine").textContent = "Degerlendirme tamamlandi";
+        submitBtn.textContent = "Sonraki Soru";
+        btnMode = "next";
       }
     } catch (e) {
+      if (e.message && e.message.toLowerCase().includes("oturum bulunamadi")) {
+        alert("Bu mulakat oturumu artik gecerli degil (sunucu yeniden baslatilmis olabilir). Basa donup yeni bir mulakat baslatalim.");
+        sessionStorage.removeItem("ip_session_id");
+        sessionStorage.removeItem("ip_first_question");
+        window.location.href = "interview-setup.html";
+        return;
+      }
       showRoomError(e.message);
       submitBtn.disabled = false;
       document.getElementById("skipBtn").disabled = false;
       submitBtn.textContent = "Cevabi Gonder";
+      btnMode = "answer";
       document.getElementById("statusLine").innerHTML = '<span class="speaking-dot"></span> AI konusuyor...';
     }
   }
 
   document.getElementById("submitBtn").addEventListener("click", () => {
+    if (btnMode === "next") {
+      renderQuestion(currentQ);
+      addMsg("ai", currentQ.question);
+      return;
+    }
+    if (btnMode === "finished") {
+      window.location.href = "report.html";
+      return;
+    }
     const answer = answerBox.value.trim();
     if (!answer) { showRoomError("Lutfen bir cevap yaz."); return; }
     submitAnswer(answer);
