@@ -20,7 +20,9 @@ import pdf_report
 import roadmap_store
 import challenge_store
 import github_client
+import mailer
 import user_store
+import verification_store
 from models import (
     QuestionOut,
     AnswerIn,
@@ -341,6 +343,15 @@ def register(payload: RegisterIn, response: FastAPIResponse):
     except ValueError as e:
         raise HTTPException(400, str(e))
     _set_session_cookie(response, user["id"])
+    # E-posta dogrulama kodunu gonder; SMTP ayarlanmamissa sessizce gec
+    # (kayit basarisiz olmasin, kullanici sonra "Tekrar gonder" ile deneyebilir).
+    try:
+        code = verification_store.create_verification_code(user["id"])
+        mailer.send_verification_code(user["email"], code)
+    except mailer.MailerNotConfigured:
+        pass
+    except Exception as e:
+        print("[UYARI] Dogrulama e-postasi gonderilemedi:", repr(e))
     return user_store.public_user(user)
 
 
@@ -362,6 +373,73 @@ def login(payload: LoginIn, response: FastAPIResponse):
 def logout(request: Request, response: FastAPIResponse):
     auth.destroy_session(request.cookies.get(auth.COOKIE_NAME))
     response.delete_cookie(auth.COOKIE_NAME)
+    return {"ok": True}
+
+
+class ForgotPasswordIn(BaseModel):
+    email: str
+
+
+@app.post("/api/forgot-password")
+def forgot_password(payload: ForgotPasswordIn, request: Request):
+    user = user_store.get_user_by_email(payload.email)
+    # Kullanici bulunamasa bile ayni genel mesaji donduruyoruz; boylece
+    # bu endpoint hangi e-postalarin kayitli oldugunu disariya sizdirmaz.
+    if user:
+        try:
+            token = verification_store.create_reset_token(user["id"])
+            reset_url = f"{str(request.base_url).rstrip('/')}/reset-password.html?token={token}"
+            mailer.send_password_reset(user["email"], reset_url)
+        except mailer.MailerNotConfigured:
+            raise HTTPException(503, "E-posta gonderimi su an yapilandirilmamis, lutfen daha sonra tekrar dene")
+        except Exception as e:
+            print("[UYARI] Sifre sifirlama e-postasi gonderilemedi:", repr(e))
+            raise HTTPException(502, "E-posta gonderilemedi, lutfen daha sonra tekrar dene")
+    return {"ok": True, "message": "Bu e-posta kayitliysa, sifirlama linki gonderildi"}
+
+
+class ResetPasswordIn(BaseModel):
+    token: str
+    new_password: str
+
+
+@app.post("/api/reset-password")
+def reset_password(payload: ResetPasswordIn):
+    user_id = verification_store.verify_reset_token(payload.token)
+    if not user_id:
+        raise HTTPException(400, "Link gecersiz ya da suresi dolmus, yeniden sifre sifirlama talebinde bulun")
+    try:
+        user_store.set_password(user_id, payload.new_password)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    verification_store.consume_reset_token(payload.token)
+    return {"ok": True}
+
+
+@app.post("/api/send-verification")
+def send_verification(user: dict = Depends(auth.get_current_user)):
+    if user.get("email_verified"):
+        return {"ok": True, "already_verified": True}
+    try:
+        code = verification_store.create_verification_code(user["id"])
+        mailer.send_verification_code(user["email"], code)
+    except mailer.MailerNotConfigured:
+        raise HTTPException(503, "E-posta gonderimi su an yapilandirilmamis, lutfen daha sonra tekrar dene")
+    except Exception as e:
+        print("[UYARI] Dogrulama e-postasi gonderilemedi:", repr(e))
+        raise HTTPException(502, "E-posta gonderilemedi, lutfen daha sonra tekrar dene")
+    return {"ok": True}
+
+
+class VerifyEmailIn(BaseModel):
+    code: str
+
+
+@app.post("/api/verify-email")
+def verify_email(payload: VerifyEmailIn, user: dict = Depends(auth.get_current_user)):
+    if not verification_store.verify_code(user["id"], payload.code):
+        raise HTTPException(400, "Kod hatali ya da suresi dolmus")
+    user_store.mark_email_verified(user["id"])
     return {"ok": True}
 
 

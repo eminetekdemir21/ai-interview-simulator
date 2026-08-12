@@ -6,6 +6,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Manrope:wght@700;800&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 <link rel="stylesheet" href="assets/style.css">
+<script src="assets/auth-guard.js"></script>
 <style>
   .auth-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
   .auth-glow { position: absolute; top: -200px; left: 50%; transform: translateX(-50%); width: 800px; height: 500px; background: var(--grad-brand); opacity: .16; filter: blur(120px); border-radius: 50%; }
@@ -20,18 +21,110 @@
   <div class="auth-card">
     <div class="feature-icon pulse" style="margin:0 auto 20px; width:56px; height:56px;"><i data-lucide="mail-check"></i></div>
     <h2 class="h3">E-postani dogrula</h2>
-    <p style="margin-top:8px;"><b>eminetekdemir8821@gmail.com</b> adresine 6 haneli bir kod gonderdik</p>
+    <p style="margin-top:8px;"><b id="targetEmail">e-postana</b> adresine 6 haneli bir kod gonderdik</p>
     <div class="card card-glow" style="padding:28px; margin-top:24px;">
       <div class="otp-row">
-        <input class="input otp-box" maxlength="1" value="4"><input class="input otp-box" maxlength="1" value="8">
-        <input class="input otp-box" maxlength="1" value="2"><input class="input otp-box" maxlength="1">
-        <input class="input otp-box" maxlength="1"><input class="input otp-box" maxlength="1">
+        <input class="input otp-box" maxlength="1" inputmode="numeric">
+        <input class="input otp-box" maxlength="1" inputmode="numeric">
+        <input class="input otp-box" maxlength="1" inputmode="numeric">
+        <input class="input otp-box" maxlength="1" inputmode="numeric">
+        <input class="input otp-box" maxlength="1" inputmode="numeric">
+        <input class="input otp-box" maxlength="1" inputmode="numeric">
       </div>
-      <a href="dashboard.html" class="btn btn-primary" style="width:100%;">Dogrula ve Devam Et</a>
-      <p class="faint" style="margin-top:16px; font-size:13px;">Kod gelmedi mi? <a href="#" style="color:var(--indigo-600); font-weight:700;">Tekrar gonder</a></p>
+      <div class="room-error hidden" id="veError" style="background:var(--danger-soft); color:var(--danger); border-radius:12px; padding:10px 14px; font-size:13px; margin-bottom:14px;"></div>
+      <button class="btn btn-primary" id="verifyBtn" style="width:100%;">Dogrula ve Devam Et</button>
+      <p class="faint" style="margin-top:16px; font-size:13px;">Kod gelmedi mi? <a href="#" id="resendLink" style="color:var(--indigo-600); font-weight:700;">Tekrar gonder</a></p>
+      <p class="faint" style="margin-top:6px; font-size:12.5px;"><a href="dashboard.html" style="color:var(--text-faint);">Simdi degil, dashboard'a git</a></p>
     </div>
   </div>
 </div>
-<script>lucide.createIcons();</script>
+<script>
+  lucide.createIcons();
+
+  document.addEventListener("ip-auth-ready", (e) => {
+    const user = e.detail;
+    if (user.email_verified) {
+      window.location.href = "dashboard.html";
+      return;
+    }
+    document.getElementById("targetEmail").textContent = user.email;
+  });
+  if (window.ipCurrentUser) {
+    if (window.ipCurrentUser.email_verified) {
+      window.location.href = "dashboard.html";
+    } else {
+      document.getElementById("targetEmail").textContent = window.ipCurrentUser.email;
+    }
+  }
+
+  const boxes = Array.from(document.querySelectorAll(".otp-box"));
+  boxes.forEach((box, i) => {
+    box.addEventListener("input", () => {
+      box.value = box.value.replace(/[^0-9]/g, "");
+      if (box.value && i < boxes.length - 1) boxes[i + 1].focus();
+    });
+    box.addEventListener("keydown", (ev) => {
+      if (ev.key === "Backspace" && !box.value && i > 0) boxes[i - 1].focus();
+    });
+    box.addEventListener("paste", (ev) => {
+      const text = (ev.clipboardData || window.clipboardData).getData("text").replace(/[^0-9]/g, "");
+      if (text.length) {
+        ev.preventDefault();
+        text.split("").slice(0, 6).forEach((ch, idx) => { if (boxes[idx]) boxes[idx].value = ch; });
+        boxes[Math.min(text.length, 6) - 1].focus();
+      }
+    });
+  });
+
+  function showError(msg) {
+    const el = document.getElementById("veError");
+    el.textContent = msg;
+    el.classList.remove("hidden");
+  }
+
+  document.getElementById("verifyBtn").addEventListener("click", async () => {
+    const code = boxes.map(b => b.value).join("");
+    document.getElementById("veError").classList.add("hidden");
+    if (code.length !== 6) return showError("6 haneli kodu tam gir");
+
+    const btn = document.getElementById("verifyBtn");
+    btn.disabled = true;
+    btn.textContent = "Dogrulaniyor...";
+    try {
+      const r = await fetch("/api/verify-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code }),
+      });
+      if (!r.ok) {
+        const data = await r.json().catch(() => ({}));
+        throw new Error(data.detail || "Dogrulama basarisiz");
+      }
+      window.location.href = "dashboard.html";
+    } catch (e) {
+      showError(e.message);
+      btn.disabled = false;
+      btn.textContent = "Dogrula ve Devam Et";
+    }
+  });
+
+  document.getElementById("resendLink").addEventListener("click", async (ev) => {
+    ev.preventDefault();
+    const link = ev.target;
+    link.textContent = "Gonderiliyor...";
+    try {
+      const r = await fetch("/api/send-verification", { method: "POST" });
+      if (!r.ok) {
+        const data = await r.json().catch(() => ({}));
+        throw new Error(data.detail || "Gonderilemedi");
+      }
+      link.textContent = "Kod tekrar gonderildi";
+      setTimeout(() => { link.textContent = "Tekrar gonder"; }, 4000);
+    } catch (e) {
+      showError(e.message);
+      link.textContent = "Tekrar gonder";
+    }
+  });
+</script>
 </body>
 </html>

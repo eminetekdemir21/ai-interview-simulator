@@ -91,5 +91,24 @@ def update_user(user_id: str, fields: dict) -> dict:
         return user
 
 
+def set_password(user_id: str, new_password: str):
+    db.init_db()
+    if len(new_password) < 6:
+        raise ValueError("Sifre en az 6 karakter olmali")
+    with db.get_conn() as conn:
+        conn.execute(
+            "UPDATE users SET password_hash = ? WHERE id = ?",
+            (_hash_password(new_password), user_id),
+        )
+
+
+def mark_email_verified(user_id: str):
+    db.init_db()
+    with db.get_conn() as conn:
+        conn.execute("UPDATE users SET email_verified = 1 WHERE id = ?", (user_id,))
+
+
 def public_user(user: dict) -> dict:
+    user = dict(user)
+    user["email_verified"] = bool(user.get("email_verified"))
     return {k: v for k, v in user.items() if k != "password_hash"}

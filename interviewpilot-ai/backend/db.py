@@ -45,7 +45,21 @@ def init_db():
                 target_role TEXT DEFAULT '',
                 github_username TEXT DEFAULT '',
                 password_hash TEXT NOT NULL,
+                email_verified INTEGER DEFAULT 0,
                 created_at TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS password_resets (
+                token TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                expires_at TEXT NOT NULL,
+                used INTEGER DEFAULT 0
+            );
+
+            CREATE TABLE IF NOT EXISTS email_verifications (
+                user_id TEXT PRIMARY KEY,
+                code TEXT NOT NULL,
+                expires_at TEXT NOT NULL
             );
 
             CREATE TABLE IF NOT EXISTS auth_sessions (
@@ -106,6 +120,11 @@ def init_db():
                 PRIMARY KEY (user_id, date)
             );
             """)
+            # Eski veritabanlarinda (bu sutun eklenmeden once olusturulmus)
+            # users tablosuna email_verified sutununu sonradan ekle.
+            existing_cols = {row["name"] for row in conn.execute("PRAGMA table_info(users)").fetchall()}
+            if "email_verified" not in existing_cols:
+                conn.execute("ALTER TABLE users ADD COLUMN email_verified INTEGER DEFAULT 0")
         _initialized = True
 
 
