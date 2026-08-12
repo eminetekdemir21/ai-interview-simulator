@@ -25,6 +25,29 @@ def _generate(model, prompt):
         )
 
 
+def _parse_json_response(model, prompt, max_attempts: int = 2) -> dict:
+    """Gemini'den JSON yanit ister; bazen (ozellikle cok kisa/sıradışı
+    girdilerde) model gecersiz JSON uretebiliyor (eksik virgul, markdown kod
+    bloguna sarma vb). Bunu tek seferlik sert bir hataya donusturmek yerine,
+    hafifce temizleyip parse etmeyi dener, olmazsa ayni prompt ile bir kez
+    daha (yeni bir uretimle) dener."""
+    last_err = None
+    for _ in range(max_attempts):
+        response = _generate(model, prompt)
+        text = (response.text or "").strip()
+        if text.startswith("```"):
+            text = text.strip("`")
+            if text[:4].lower() == "json":
+                text = text[4:]
+            text = text.strip()
+        try:
+            return json.loads(text)
+        except json.JSONDecodeError as e:
+            last_err = e
+            continue
+    raise last_err
+
+
 def friendly_error(e: Exception) -> str:
     """Gemini/HTTP hatalarini kullaniciya okunakli Turkce mesaja cevirir."""
     text = str(e)
@@ -139,8 +162,7 @@ eksik kalan konuyu derinlestirebilirsin.
 Yalnizca su JSON formatinda cevap ver:
 {{"question": "<soru metni>"}}
 """
-    response = _generate(model, prompt)
-    data = json.loads(response.text)
+    data = _parse_json_response(model, prompt)
     return data["question"]
 
 
@@ -164,8 +186,7 @@ Eksik kalan veya bahsedilmesi gereken noktalari belirt.
 Yalnizca su JSON formatinda cevap ver:
 {{"score": <0-100 arasi tam sayi>, "feedback": "<geri bildirim>", "missing_points": "<eksik noktalar>"}}
 """
-    response = _generate(model, prompt)
-    return json.loads(response.text)
+    return _parse_json_response(model, prompt)
 
 
 def _stats_block(stats: dict | None) -> str:
@@ -246,8 +267,7 @@ Yalnizca su JSON formatinda cevap ver:
   "missing_sections": ["<CV'de eksik oldugu tespit edilen bolum, orn. 'Ozet', 'Projeler'>"]
 }}
 """
-    response = _generate(model, prompt)
-    return json.loads(response.text)
+    return _parse_json_response(model, prompt)
 
 
 def analyze_github_profile(profile: dict, repos: list) -> dict:
@@ -283,8 +303,7 @@ Yalnizca su JSON formatinda cevap ver:
   "summary": "<2-3 cumlelik genel degerlendirme>"
 }}
 """
-    response = _generate(model, prompt)
-    return json.loads(response.text)
+    return _parse_json_response(model, prompt)
 
 
 def generate_daily_challenge(stats: dict) -> dict:
@@ -302,8 +321,7 @@ kisa ve net kavramsal/analitik bir soru olsun. {focus_hint}
 Yalnizca su JSON formatinda cevap ver:
 {{"question": "<soru metni>"}}
 """
-    response = _generate(model, prompt)
-    return json.loads(response.text)
+    return _parse_json_response(model, prompt)
 
 
 def evaluate_challenge_answer(question: str, answer: str) -> dict:
@@ -320,8 +338,7 @@ Cevabi 0-100 arasi puanla. Kisa (1-2 cumle) yapici bir geri bildirim yaz.
 Yalnizca su JSON formatinda cevap ver:
 {{"score": <0-100 arasi tam sayi>, "feedback": "<kisa geri bildirim>"}}
 """
-    response = _generate(model, prompt)
-    return json.loads(response.text)
+    return _parse_json_response(model, prompt)
 
 
 def analyze_job_match(cv_text: str, job_text: str) -> dict:
@@ -348,8 +365,7 @@ Yalnizca su JSON formatinda cevap ver:
   "summary": "<2-3 cumlelik genel degerlendirme ve bu ilana basvuru icin tavsiye>"
 }}
 """
-    response = _generate(model, prompt)
-    return json.loads(response.text)
+    return _parse_json_response(model, prompt)
 
 
 def generate_roadmap(stats: dict) -> dict:
@@ -376,8 +392,7 @@ Yalnizca su JSON formatinda cevap ver:
   ]
 }}
 """
-    response = _generate(model, prompt)
-    return json.loads(response.text)
+    return _parse_json_response(model, prompt)
 
 
 def generate_final_report(cv_text: str, job_text: str, history, context: dict | None = None) -> dict:
@@ -407,5 +422,4 @@ Yalnizca su JSON formatinda cevap ver:
   "summary": "<2-3 cumlelik genel degerlendirme ve tavsiye>"
 }}
 """
-    response = _generate(model, prompt)
-    return json.loads(response.text)
+    return _parse_json_response(model, prompt)

@@ -322,12 +322,13 @@ COOKIE_MAX_AGE = 60 * 60 * 24 * 30  # 30 gun
 COOKIE_SECURE = os.getenv("COOKIE_SECURE", "false").lower() == "true"
 
 
-def _set_session_cookie(response: FastAPIResponse, user_id: str):
+def _set_session_cookie(response: FastAPIResponse, user_id: str) -> str:
     token = auth.create_session(user_id)
     response.set_cookie(
         auth.COOKIE_NAME, token,
         httponly=True, samesite="lax", max_age=COOKIE_MAX_AGE, secure=COOKIE_SECURE,
     )
+    return token
 
 
 class RegisterIn(BaseModel):
@@ -342,8 +343,10 @@ def register(payload: RegisterIn, response: FastAPIResponse):
         user = user_store.create_user(payload.email, payload.password, payload.name)
     except ValueError as e:
         raise HTTPException(400, str(e))
-    _set_session_cookie(response, user["id"])
-    return user_store.public_user(user)
+    token = _set_session_cookie(response, user["id"])
+    # "token" alani sadece mobil uygulama (React Native) icin; web tarayicisi
+    # cerezi kullanir ve bu alani yok sayar.
+    return {**user_store.public_user(user), "token": token}
 
 
 class LoginIn(BaseModel):
@@ -356,13 +359,18 @@ def login(payload: LoginIn, response: FastAPIResponse):
     user = user_store.verify_login(payload.email, payload.password)
     if not user:
         raise HTTPException(401, "E-posta veya sifre hatali")
-    _set_session_cookie(response, user["id"])
-    return user_store.public_user(user)
+    token = _set_session_cookie(response, user["id"])
+    return {**user_store.public_user(user), "token": token}
 
 
 @app.post("/api/logout")
 def logout(request: Request, response: FastAPIResponse):
-    auth.destroy_session(request.cookies.get(auth.COOKIE_NAME))
+    token = request.cookies.get(auth.COOKIE_NAME)
+    if not token:
+        authz = request.headers.get("authorization") or request.headers.get("Authorization")
+        if authz and authz.lower().startswith("bearer "):
+            token = authz[7:].strip()
+    auth.destroy_session(token)
     response.delete_cookie(auth.COOKIE_NAME)
     return {"ok": True}
 
@@ -644,6 +652,15 @@ if os.path.isdir(frontend_dir):
     @app.get("/")
     def serve_index():
         return FileResponse(os.path.join(frontend_dir, "index.html"))
+
+    @app.get("/manifest.json")
+    def serve_manifest():
+        return FileResponse(os.path.join(frontend_dir, "manifest.json"), media_type="application/manifest+json")
+
+    @app.get("/sw.js")
+    def serve_service_worker():
+        # Service worker'in tum siteyi kapsayabilmesi icin kok dizinden servis edilmeli
+        return FileResponse(os.path.join(frontend_dir, "sw.js"), media_type="application/javascript")
 
     @app.get("/{page_name}.html")
     def serve_page(page_name: str):

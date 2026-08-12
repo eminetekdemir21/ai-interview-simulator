@@ -33,6 +33,12 @@ def destroy_session(token: str | None):
 
 def get_current_user(request: Request) -> dict:
     token = request.cookies.get(COOKIE_NAME)
+    if not token:
+        # Mobil uygulama (React Native) cerez yerine Authorization: Bearer
+        # header'iyla gelir; web akisi bundan etkilenmez.
+        authz = request.headers.get("authorization") or request.headers.get("Authorization")
+        if authz and authz.lower().startswith("bearer "):
+            token = authz[7:].strip()
     db.init_db()
     user_id = None
     if token:
