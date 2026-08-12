@@ -179,7 +179,7 @@
           <div class="flex items-center gap-12" style="margin-bottom:16px;">
             <div class="feature-icon" style="width:36px; height:36px; margin:0;"><i data-lucide="mic" style="width:16px"></i></div>
             <div style="font-size:12.5px;"><b>Sesli Mod</b><br><span class="faint">Mikrofonla soyleyerek cevapla</span></div>
-            <div class="switch active" style="margin-left:auto;"></div>
+            <div class="switch on" id="voiceModeSwitch" style="margin-left:auto;"></div>
           </div>
           <button id="startBtn" class="btn btn-primary" style="width:100%;"><i data-lucide="play" style="width:16px"></i> Mulakati Baslat</button>
           <div class="setup-error hidden" id="setupError"></div>
@@ -276,6 +276,14 @@
     el.textContent = msg;
     el.classList.remove("hidden");
   }
+
+  const voiceModeSwitch = document.getElementById("voiceModeSwitch");
+  const savedVoicePref = sessionStorage.getItem("ip_voice_mode");
+  if (savedVoicePref === "off") voiceModeSwitch.classList.remove("on");
+  voiceModeSwitch.addEventListener("click", () => {
+    voiceModeSwitch.classList.toggle("on");
+    sessionStorage.setItem("ip_voice_mode", voiceModeSwitch.classList.contains("on") ? "on" : "off");
+  });
 
   document.getElementById("startBtn").addEventListener("click", async () => {
     const errEl = document.getElementById("setupError");

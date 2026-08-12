@@ -80,6 +80,7 @@ async def upload_cv(session_id: str = Form(...), file: UploadFile = File(...), u
     if not text.strip():
         raise HTTPException(400, "PDF'den metin cikarilamadi")
     session.cv_text = text
+    store.save(session)
     return {"cv_preview": text[:500]}
 
 
@@ -106,6 +107,7 @@ async def upload_job(
     if not text.strip():
         raise HTTPException(400, "Is ilani metni bos")
     session.job_text = text
+    store.save(session)
     return {"job_preview": text[:500]}
 
 
@@ -146,6 +148,7 @@ def start_interview(
     except Exception as e:
         raise HTTPException(502, gc.friendly_error(e))
     session.history.append(QARecord(question))
+    store.save(session)
 
     return QuestionOut(
         question=question,
@@ -190,6 +193,8 @@ def submit_answer(payload: AnswerIn, user: dict = Depends(auth.get_current_user)
         except Exception as e:
             raise HTTPException(502, gc.friendly_error(e))
         session.history.append(QARecord(next_question))
+
+    store.save(session)
 
     return AnswerFeedbackOut(
         score=current.score,
@@ -309,13 +314,17 @@ def list_companies():
 
 
 COOKIE_MAX_AGE = 60 * 60 * 24 * 30  # 30 gun
+# Canlida (HTTPS) COOKIE_SECURE=true olarak ayarlanmali; yerel gelistirmede
+# (http://127.0.0.1) secure cerezler tarayicida calismadigi icin varsayilan
+# kapali birakildi.
+COOKIE_SECURE = os.getenv("COOKIE_SECURE", "false").lower() == "true"
 
 
 def _set_session_cookie(response: FastAPIResponse, user_id: str):
     token = auth.create_session(user_id)
     response.set_cookie(
         auth.COOKIE_NAME, token,
-        httponly=True, samesite="lax", max_age=COOKIE_MAX_AGE,
+        httponly=True, samesite="lax", max_age=COOKIE_MAX_AGE, secure=COOKIE_SECURE,
     )
 
 

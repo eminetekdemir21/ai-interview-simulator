@@ -13,6 +13,8 @@ cikarir. Google Gemini API kullanir.
   icin farkli odak alani ve mulakat tarzi baglami
 - **Canli mulakat odasi** — CV + is ilanina gore AI'nin urettigi sorular, her cevap icin
   aninda puan + geri bildirim, bir sonraki soruya otomatik gecis
+- **Sesli cevap** — mikrofon butonuyla konusarak cevap verilebilir (tarayicinin yerlesik
+  konusma tanima ozelligiyle, Chrome/Edge)
 - **Sonuc raporu** — genel skor, teknik/iletisim/ozguven/sistem tasarimi alt skorlari,
   guclu/zayif yonler, PDF olarak indirme (Turkce karakter destekli)
 - **Dashboard ve Gecmis Mulakatlarim** — gercek mulakat kayitlarindan hesaplanan istatistikler
@@ -44,6 +46,15 @@ GEMINI_API_KEY=senin_api_keyin      # https://aistudio.google.com/apikey
 GEMINI_MODEL=gemini-3.5-flash-lite  # Gemini 3 ailesi onerilir (2.0/2.5 modelleri kaldirildi)
 ```
 
+Daha once JSON dosyalarinda (`users.json`, `history.json`, ...) veri biriktiyse, bunlari
+yeni SQLite veritabanina tasimak icin tek seferlik gecis scriptini calistir (guvenlidir,
+tekrar calistirilirsa mevcut kayitlarin uzerine yazmaz):
+
+```bash
+cd interviewpilot-ai/backend
+python migrate_json_to_sqlite.py
+```
+
 ## Calistirma
 
 ```bash
@@ -56,12 +67,14 @@ Tarayicida `http://127.0.0.1:8001` — kayit ol, giris yap, kullanmaya basla.
 ## Mimari
 
 - **Backend**: FastAPI (Python), tum HTML/CSS/JS dosyalarini da ayni sunucudan servis eder.
-  Oturumlar (`session_store.py`) bellek ici tutulur; kimlik dogrulama httpOnly cerez
-  (`auth.py`) ile yapilir. Kalici veriler basit JSON dosyalarinda tutulur (gercek bir
-  veritabani degil, proje kapsami icin yeterli): `backend/data/users.json` (hesaplar,
-  SHA-256 + salt ile hashlenmis sifreler), `backend/data/history.json` (tamamlanmis
-  mulakatlar, kullaniciya gore izole), `backend/data/roadmap.json` (yol haritalari),
-  `backend/data/challenges.json` (gunluk meydan okuma gecmisi).
+  Tum kalici veriler tek bir SQLite veritabaninda (`backend/data/interviewpilot.db`) tutulur:
+  kullanicilar (SHA-256 + salt ile hashlenmis sifreler), giris oturumlari, aktif/tamamlanmis
+  mulakatlar, yol haritalari ve gunluk meydan okuma gecmisi. Aktif bir mulakat oturumu bile
+  her cevaptan sonra veritabanina yazilir; sunucu yeniden baslasa da devam eden bir mulakat
+  kaybolmaz. `backend/db.py` baglanti ve sema yonetimini yapar; ekstra bir pip bagimliligi
+  eklenmedi (Python'un yerlesik `sqlite3` modulu kullanildi). Eski JSON dosyalarindan
+  (`users.json`, `history.json`, ...) gecis icin `backend/migrate_json_to_sqlite.py` scripti
+  bir kez calistirilir (bkz. Kurulum).
 - **Frontend**: Vanilla HTML/CSS/JS, sayfa gecislerinde `sessionStorage` kullanir.
 - **AI**: Google Gemini API (`google-generativeai` SDK). Her cagri ayri bir thread'de calisir
   ve en fazla 25 saniye beklenir; sure asilirsa kullaniciya net bir hata mesaji doner
@@ -70,11 +83,37 @@ Tarayicida `http://127.0.0.1:8001` — kayit ol, giris yap, kullanmaya basla.
   kullanici adiyla sorgular; ekstra bagimlilik eklememek icin Python'un standart
   `urllib` kutuphanesiyle yazilmistir.
 
+## Internete yayinlama (deploy)
+
+Proje [Render](https://render.com) gibi ucretsiz bir platformda calisacak sekilde hazir
+(`render.yaml` ve `Procfile` dahil edildi). Render ile adimlar:
+
+1. [render.com](https://render.com)'da GitHub hesabinla giris yap.
+2. **New +** → **Web Service** → `ai-interview-simulator` reponu sec.
+3. Render `render.yaml` dosyasini otomatik algilar (yoksa manuel ayarla):
+   - Root Directory: `interviewpilot-ai/backend`
+   - Build Command: `pip install -r ../requirements.txt`
+   - Start Command: `uvicorn main:app --host 0.0.0.0 --port $PORT`
+4. Environment sekmesinden `GEMINI_API_KEY` degerini kendi key'inle gir (`GEMINI_MODEL` ve
+   `COOKIE_SECURE` zaten `render.yaml`'da tanimli).
+5. **Deploy** — birkac dakika icinde `https://<proje-adin>.onrender.com` adresinde canli olur.
+
+**Onemli sinir**: Render'in ucretsiz plani dosya sistemini kalici tutmaz — her yeniden
+deploy'da (ya da uzun sure inaktif kalip "uyandiginda") `backend/data/interviewpilot.db`
+sifirlanir, yani tum kullanicilar ve mulakat gecmisi silinir. Bu, bir portfolyo/demo linki
+paylasmak icin sorun degildir, ama gercek kullanicilarin kalici veri biriktirmesini
+istiyorsan Render'in ucretli "Persistent Disk" ozelligini eklemen ya da SQLite yerine
+harici, kalici bir veritabani (orn. Render'in ucretsiz PostgreSQL'i) kullanman gerekir —
+bu proje kapsaminda yapilmadi.
+
 ## Bilinen sinirlar
 
 - Aktif mulakat oturumlari bellek ici (sunucu yeniden baslarsa devam eden bir mulakat
   kaybolur, ama tamamlanmis mulakatlar `history.json`'da kalir).
 - Basit dosya tabanli depolama (gercek bir veritabani yerine JSON dosyalari) — kucuk
   olcekli/tek makinede calisan bir proje icin yeterli, yuksek trafik icin uygun degil.
-- Sesli mulakat modu arayuzde gorunur ama pasif (sadece metin tabanli cevap destekleniyor).
-- LinkedIn entegrasyonu yok (OAuth gerektirdigi icin bu proje kapsaminda eklenmedi).
+- Sesli cevap (mikrofon) tarayicinin yerlesik Web Speech API'sini kullanir; Chrome ve Edge'de
+  calisir, Firefox ve Safari'de tarayici destegi kisitli/yok (bu durumda mikrofon butonu
+  otomatik olarak devre disi gorunur, metinle cevaplamaya devam edilebilir).
+- LinkedIn entegrasyonu yok (gercek OAuth basvurusu/onayi gerektirdigi icin bu proje
+  kapsaminda eklenmedi; GitHub genel API'si OAuth gerektirmedigi icin eklendi).

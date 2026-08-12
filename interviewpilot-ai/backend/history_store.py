@@ -1,83 +1,82 @@
-"""Tamamlanan mulakatlarin sonuc raporlarini basit bir JSON dosyasinda
-saklayan kucuk bir depo. Gercek bir veritabani degildir ama sunucu
-yeniden baslatilsa bile gecmisin kaybolmamasini saglar.
-"""
-import json
-import os
-import threading
+"""Tamamlanan mulakatlarin sonuc raporlarini SQLite'ta saklayan depo.
+Eskiden tek bir JSON dosyasi kullaniliyordu; simdi gercek bir veritabani
+uzerinden, kullaniciya gore izole edilmis sekilde saklanir."""
 from datetime import datetime
 from typing import List, Optional
 
-DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
-HISTORY_FILE = os.path.join(DATA_DIR, "history.json")
-
-_lock = threading.Lock()
-
-
-def _ensure_file():
-    os.makedirs(DATA_DIR, exist_ok=True)
-    if not os.path.exists(HISTORY_FILE):
-        with open(HISTORY_FILE, "w", encoding="utf-8") as f:
-            json.dump([], f)
-
-
-def _load() -> List[dict]:
-    _ensure_file()
-    try:
-        with open(HISTORY_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except (json.JSONDecodeError, FileNotFoundError):
-        return []
-
-
-def _save(records: List[dict]):
-    _ensure_file()
-    with open(HISTORY_FILE, "w", encoding="utf-8") as f:
-        json.dump(records, f, ensure_ascii=False, indent=2)
+import db
 
 
 def add_record(record: dict) -> dict:
     """Yeni bir rapor kaydi ekler. Ayni id zaten varsa (orn. kullanici
     sonuc sayfasini yeniden yukledi) tekrar eklemez, mevcut kaydi dondurur."""
-    with _lock:
-        records = _load()
-        existing = next((r for r in records if r["id"] == record["id"]), None)
+    db.init_db()
+    with db.get_conn() as conn:
+        existing = conn.execute("SELECT * FROM history WHERE id = ?", (record["id"],)).fetchone()
         if existing:
-            return existing
+            row = dict(existing)
+            row["sub_scores"] = db.loads(row.pop("sub_scores_json", None), {})
+            row["strengths"] = db.loads(row.pop("strengths_json", None), [])
+            row["weaknesses"] = db.loads(row.pop("weaknesses_json", None), [])
+            row["history"] = db.loads(row.pop("history_json", None), [])
+            return row
+
+        record = dict(record)
         record["created_at"] = datetime.now().isoformat(timespec="seconds")
-        records.insert(0, record)  # en yeni basta
-        _save(records)
+        conn.execute(
+            "INSERT INTO history (id, user_id, created_at, overall_score, sub_scores_json, "
+            "strengths_json, weaknesses_json, summary, job_preview, company_id, company_name, "
+            "role, interview_type, history_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                record["id"], record.get("user_id"), record["created_at"], record.get("overall_score"),
+                db.dumps(record.get("sub_scores") or {}), db.dumps(record.get("strengths") or []),
+                db.dumps(record.get("weaknesses") or []), record.get("summary"), record.get("job_preview"),
+                record.get("company_id"), record.get("company_name"), record.get("role"),
+                record.get("interview_type"), db.dumps(record.get("history") or []),
+            ),
+        )
         return record
 
 
+def _full_records(user_id: Optional[str] = None) -> List[dict]:
+    db.init_db()
+    with db.get_conn() as conn:
+        if user_id is not None:
+            rows = conn.execute(
+                "SELECT * FROM history WHERE user_id = ? ORDER BY created_at DESC", (user_id,)
+            ).fetchall()
+        else:
+            rows = conn.execute("SELECT * FROM history ORDER BY created_at DESC").fetchall()
+        records = []
+        for row in rows:
+            r = dict(row)
+            r["sub_scores"] = db.loads(r.pop("sub_scores_json", None), {})
+            r["strengths"] = db.loads(r.pop("strengths_json", None), [])
+            r["weaknesses"] = db.loads(r.pop("weaknesses_json", None), [])
+            r["history"] = db.loads(r.pop("history_json", None), [])
+            records.append(r)
+        return records
+
+
 def list_records(user_id: Optional[str] = None) -> List[dict]:
-    """Ozet liste: PDF/tam gecmis olmadan, listeleme ekrani icin.
-    user_id verilirse sadece o kullaniciya ait kayitlar donulur."""
-    records = _load()
-    if user_id is not None:
-        records = [r for r in records if r.get("user_id") == user_id]
-    summaries = []
-    for r in records:
-        summaries.append({
-            "id": r["id"],
-            "created_at": r.get("created_at"),
-            "overall_score": r.get("overall_score"),
-            "job_preview": r.get("job_preview", ""),
-            "question_count": len(r.get("history", [])),
-            "company_id": r.get("company_id"),
-            "company_name": r.get("company_name"),
-            "role": r.get("role"),
-            "interview_type": r.get("interview_type"),
-        })
-    return summaries
+    """Ozet liste: PDF/tam gecmis olmadan, listeleme ekrani icin."""
+    records = _full_records(user_id)
+    return [{
+        "id": r["id"],
+        "created_at": r.get("created_at"),
+        "overall_score": r.get("overall_score"),
+        "job_preview": r.get("job_preview", ""),
+        "question_count": len(r.get("history", [])),
+        "company_id": r.get("company_id"),
+        "company_name": r.get("company_name"),
+        "role": r.get("role"),
+        "interview_type": r.get("interview_type"),
+    } for r in records]
 
 
 def stats(user_id: Optional[str] = None) -> dict:
-    """Dashboard KPI'lari icin gercek verilerden hesaplanan ozet istatistik.
-    user_id verilirse sadece o kullaniciya ait kayitlar hesaba katilir."""
-    records = _load()
-    if user_id is not None:
-        records = [r for r in records if r.get("user_id") == user_id]
+    """Dashboard KPI'lari icin gercek verilerden hesaplanan ozet istatistik."""
+    records = _full_records(user_id)
     if not records:
         return {
             "total_interviews": 0,
@@ -95,11 +94,10 @@ def stats(user_id: Optional[str] = None) -> dict:
     avg_score = round(sum(scores) / len(scores))
     best_score = max(scores)
 
-    # Gunluk seri: kayitlarin created_at tarihlerine gore ardisik gun sayisi
     dates = sorted({r.get("created_at", "")[:10] for r in records if r.get("created_at")}, reverse=True)
     streak = 0
     if dates:
-        from datetime import datetime, timedelta
+        from datetime import timedelta
         cursor = datetime.fromisoformat(dates[0]).date()
         today = datetime.now().date()
         if (today - cursor).days <= 1:
@@ -112,7 +110,6 @@ def stats(user_id: Optional[str] = None) -> dict:
                 else:
                     break
 
-    # Konu bazli zayif/guclu: weaknesses/strengths listelerinden en sik geceni bul
     from collections import Counter
     weak_counter = Counter()
     strong_counter = Counter()
@@ -135,7 +132,6 @@ def stats(user_id: Optional[str] = None) -> dict:
 
     weekly = [{"date": r.get("created_at", "")[:10], "score": r.get("overall_score", 0)} for r in reversed(records[:7])]
 
-    # Sub-score'lari olan kayitlardan ortalama beceri profili (radar grafik icin)
     sub_keys = ["technical", "communication", "confidence", "system_design"]
     sub_totals = {k: 0 for k in sub_keys}
     sub_count = 0
@@ -161,10 +157,17 @@ def stats(user_id: Optional[str] = None) -> dict:
 
 
 def get_record(item_id: str, user_id: Optional[str] = None) -> Optional[dict]:
-    """user_id verilirse, kayit baska bir kullaniciya aitse None doner
-    (baska kullanicinin verisine erisimi engeller)."""
-    records = _load()
-    record = next((r for r in records if r["id"] == item_id), None)
-    if record and user_id is not None and record.get("user_id") != user_id:
-        return None
-    return record
+    """user_id verilirse, kayit baska bir kullaniciya aitse None doner."""
+    db.init_db()
+    with db.get_conn() as conn:
+        row = conn.execute("SELECT * FROM history WHERE id = ?", (item_id,)).fetchone()
+        if not row:
+            return None
+        record = dict(row)
+        if user_id is not None and record.get("user_id") != user_id:
+            return None
+        record["sub_scores"] = db.loads(record.pop("sub_scores_json", None), {})
+        record["strengths"] = db.loads(record.pop("strengths_json", None), [])
+        record["weaknesses"] = db.loads(record.pop("weaknesses_json", None), [])
+        record["history"] = db.loads(record.pop("history_json", None), [])
+        return record

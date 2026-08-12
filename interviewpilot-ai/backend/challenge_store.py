@@ -1,31 +1,10 @@
-"""Gunluk Meydan Okuma (Daily Challenge) icin dosya tabanli depo.
+"""Gunluk Meydan Okuma (Daily Challenge) icin SQLite tabanli depo.
 Her kullanicinin gunluk mini soru gecmisini (tarih, soru, cevap, puan)
 saklar; gercek seri (streak) ve haftalik ilerleme buradan hesaplanir."""
-import json
-import os
-import threading
 from datetime import date, timedelta
 from typing import Optional
 
-_DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
-_PATH = os.path.join(_DATA_DIR, "challenges.json")
-_lock = threading.Lock()
-
-
-def _load() -> dict:
-    if not os.path.isfile(_PATH):
-        return {}
-    try:
-        with open(_PATH, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except (json.JSONDecodeError, OSError):
-        return {}
-
-
-def _save(data: dict):
-    os.makedirs(_DATA_DIR, exist_ok=True)
-    with open(_PATH, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+import db
 
 
 def _today() -> str:
@@ -33,52 +12,71 @@ def _today() -> str:
 
 
 def get_today(user_id: str) -> Optional[dict]:
-    records = _load().get(user_id, [])
-    today = _today()
-    return next((r for r in records if r["date"] == today), None)
+    db.init_db()
+    with db.get_conn() as conn:
+        row = conn.execute(
+            "SELECT * FROM challenges WHERE user_id = ? AND date = ?", (user_id, _today())
+        ).fetchone()
+        return db.row_to_dict(row)
 
 
 def create_today(user_id: str, question: str) -> dict:
-    with _lock:
-        data = _load()
-        records = data.setdefault(user_id, [])
-        today = _today()
-        existing = next((r for r in records if r["date"] == today), None)
+    db.init_db()
+    today = _today()
+    with db.get_conn() as conn:
+        existing = conn.execute(
+            "SELECT * FROM challenges WHERE user_id = ? AND date = ?", (user_id, today)
+        ).fetchone()
         if existing:
-            return existing
-        record = {"date": today, "question": question, "answer": None, "score": None, "feedback": None, "completed": False}
-        records.append(record)
-        _save(data)
-        return record
+            return db.row_to_dict(existing)
+        conn.execute(
+            "INSERT INTO challenges (user_id, date, question, answer, score, feedback, completed) "
+            "VALUES (?, ?, ?, NULL, NULL, NULL, 0)",
+            (user_id, today, question),
+        )
+        return {"user_id": user_id, "date": today, "question": question, "answer": None,
+                "score": None, "feedback": None, "completed": False}
 
 
 def submit_answer(user_id: str, answer: str, score: int, feedback: str) -> Optional[dict]:
-    with _lock:
-        data = _load()
-        records = data.get(user_id, [])
-        today = _today()
-        record = next((r for r in records if r["date"] == today), None)
-        if not record:
+    db.init_db()
+    today = _today()
+    with db.get_conn() as conn:
+        row = conn.execute(
+            "SELECT * FROM challenges WHERE user_id = ? AND date = ?", (user_id, today)
+        ).fetchone()
+        if not row:
             return None
-        record["answer"] = answer
-        record["score"] = score
-        record["feedback"] = feedback
-        record["completed"] = True
-        _save(data)
-        return record
+        conn.execute(
+            "UPDATE challenges SET answer = ?, score = ?, feedback = ?, completed = 1 "
+            "WHERE user_id = ? AND date = ?",
+            (answer, score, feedback, user_id, today),
+        )
+        updated = conn.execute(
+            "SELECT * FROM challenges WHERE user_id = ? AND date = ?", (user_id, today)
+        ).fetchone()
+        return db.row_to_dict(updated)
 
 
 def list_records(user_id: str) -> list[dict]:
-    return sorted(_load().get(user_id, []), key=lambda r: r["date"], reverse=True)
+    db.init_db()
+    with db.get_conn() as conn:
+        rows = conn.execute(
+            "SELECT * FROM challenges WHERE user_id = ? ORDER BY date DESC", (user_id,)
+        ).fetchall()
+        return [dict(r) for r in rows]
 
 
 def compute_stats(user_id: str) -> dict:
     """Gercek tamamlanmis gunlerden seri (streak) ve son 7 gunluk ilerlemeyi hesaplar."""
-    records = [r for r in _load().get(user_id, []) if r.get("completed")]
-    completed_dates = {r["date"] for r in records}
+    db.init_db()
+    with db.get_conn() as conn:
+        rows = conn.execute(
+            "SELECT date FROM challenges WHERE user_id = ? AND completed = 1", (user_id,)
+        ).fetchall()
+    completed_dates = {r["date"] for r in rows}
 
     today = date.today()
-    # Seri: bugunden (ya da dunden, bugun henuz yapilmadiysa) geriye dogru ardisik tamamlanmis gunler
     streak = 0
     cursor = today
     if today.isoformat() not in completed_dates:
@@ -87,7 +85,6 @@ def compute_stats(user_id: str) -> dict:
         streak += 1
         cursor -= timedelta(days=1)
 
-    # Son 7 takvim gunu (bugun dahil) icinde kac gun tamamlanmis
     week_completed = sum(1 for i in range(7) if (today - timedelta(days=i)).isoformat() in completed_dates)
 
     badge_threshold = 30

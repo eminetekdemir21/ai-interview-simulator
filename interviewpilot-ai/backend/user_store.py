@@ -1,33 +1,12 @@
-"""Basit, dosya tabanli coklu kullanici deposu. Gercek bir veritabani
-degildir ama her kullanicinin kendi hesabiyla kayit olup giris yapmasini
-ve verilerinin (CV gecmisi, profil) ayri tutulmasini saglar."""
+"""Coklu kullanici deposu — SQLite tabanli. Her kullanicinin kendi
+hesabiyla kayit olup giris yapmasini ve verilerinin (CV gecmisi, profil)
+ayri tutulmasini saglar."""
 import hashlib
-import json
-import os
 import secrets
-import threading
 from datetime import datetime
 from typing import Optional
 
-_DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
-_USERS_PATH = os.path.join(_DATA_DIR, "users.json")
-_lock = threading.Lock()
-
-
-def _load() -> list[dict]:
-    if not os.path.isfile(_USERS_PATH):
-        return []
-    try:
-        with open(_USERS_PATH, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except (json.JSONDecodeError, OSError):
-        return []
-
-
-def _save(users: list[dict]):
-    os.makedirs(_DATA_DIR, exist_ok=True)
-    with open(_USERS_PATH, "w", encoding="utf-8") as f:
-        json.dump(users, f, ensure_ascii=False, indent=2)
+import db
 
 
 def _hash_password(password: str, salt: Optional[str] = None) -> str:
@@ -46,22 +25,29 @@ def _verify_password(password: str, stored: str) -> bool:
 
 def get_user_by_email(email: str) -> Optional[dict]:
     email = email.strip().lower()
-    return next((u for u in _load() if u["email"] == email), None)
+    db.init_db()
+    with db.get_conn() as conn:
+        row = conn.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
+        return db.row_to_dict(row)
 
 
 def get_user(user_id: str) -> Optional[dict]:
-    return next((u for u in _load() if u["id"] == user_id), None)
+    db.init_db()
+    with db.get_conn() as conn:
+        row = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+        return db.row_to_dict(row)
 
 
 def create_user(email: str, password: str, name: str) -> dict:
-    with _lock:
-        users = _load()
-        email = email.strip().lower()
-        if not email or "@" not in email:
-            raise ValueError("Gecerli bir e-posta adresi gir")
-        if len(password) < 6:
-            raise ValueError("Sifre en az 6 karakter olmali")
-        if any(u["email"] == email for u in users):
+    db.init_db()
+    email = email.strip().lower()
+    if not email or "@" not in email:
+        raise ValueError("Gecerli bir e-posta adresi gir")
+    if len(password) < 6:
+        raise ValueError("Sifre en az 6 karakter olmali")
+    with db.get_conn() as conn:
+        existing = conn.execute("SELECT 1 FROM users WHERE email = ?", (email,)).fetchone()
+        if existing:
             raise ValueError("Bu e-posta ile zaten bir hesap var")
         user = {
             "id": secrets.token_hex(12),
@@ -72,8 +58,12 @@ def create_user(email: str, password: str, name: str) -> dict:
             "password_hash": _hash_password(password),
             "created_at": datetime.now().isoformat(timespec="seconds"),
         }
-        users.append(user)
-        _save(users)
+        conn.execute(
+            "INSERT INTO users (id, email, name, target_role, github_username, password_hash, created_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (user["id"], user["email"], user["name"], user["target_role"],
+             user["github_username"], user["password_hash"], user["created_at"]),
+        )
         return user
 
 
@@ -85,15 +75,19 @@ def verify_login(email: str, password: str) -> Optional[dict]:
 
 
 def update_user(user_id: str, fields: dict) -> dict:
-    with _lock:
-        users = _load()
-        user = next((u for u in users if u["id"] == user_id), None)
-        if not user:
+    db.init_db()
+    with db.get_conn() as conn:
+        row = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+        if not row:
             raise ValueError("Kullanici bulunamadi")
+        user = dict(row)
         for key in ("name", "target_role", "github_username"):
             if fields.get(key) is not None:
                 user[key] = fields[key]
-        _save(users)
+        conn.execute(
+            "UPDATE users SET name = ?, target_role = ?, github_username = ? WHERE id = ?",
+            (user["name"], user["target_role"], user["github_username"], user_id),
+        )
         return user
 
 

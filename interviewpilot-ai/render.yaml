@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: interviewpilot-ai
+    runtime: python
+    rootDir: interviewpilot-ai/backend
+    buildCommand: pip install -r ../requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-3.5-flash-lite
+      - key: COOKIE_SECURE
+        value: "true"

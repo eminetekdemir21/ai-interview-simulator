@@ -104,7 +104,7 @@
   <div class="answer-panel">
     <textarea class="answer-box" id="answerBox" placeholder="Cevabini buraya yaz..." autocomplete="off"></textarea>
     <div class="controls-row">
-      <button class="mic-btn" id="micBtn" title="Sesli giris bu demoda pasif, metinle cevapla"><i data-lucide="mic" style="width:22px"></i></button>
+      <button class="mic-btn" id="micBtn" title="Sesli cevap ver (mikrofon)"><i data-lucide="mic" style="width:22px"></i></button>
       <button class="btn btn-secondary btn-sm" id="skipBtn"><i data-lucide="skip-forward" style="width:14px"></i> Atla</button>
       <div style="flex:1;"></div>
       <span class="faint" style="font-size:12px;" id="charCount">0 karakter</span>
@@ -137,7 +137,73 @@
   answerBox.addEventListener("input", () => document.getElementById("charCount").textContent = answerBox.value.length + " karakter");
 
   const micBtn = document.getElementById("micBtn");
-  micBtn.addEventListener("click", () => micBtn.classList.toggle("recording"));
+  const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let recognition = null;
+  let isRecording = false;
+  let baseAnswerText = "";
+
+  if (sessionStorage.getItem("ip_voice_mode") === "off") {
+    micBtn.style.display = "none";
+  } else if (!SpeechRecognitionCtor) {
+    micBtn.title = "Tarayicin sesli girisi desteklemiyor (Chrome ya da Edge deneyebilirsin)";
+    micBtn.style.opacity = "0.5";
+    micBtn.style.cursor = "not-allowed";
+  } else {
+    recognition = new SpeechRecognitionCtor();
+    recognition.lang = "tr-TR";
+    recognition.continuous = true;
+    recognition.interimResults = true;
+
+    recognition.addEventListener("result", (e) => {
+      let finalText = "";
+      let interimText = "";
+      for (let i = 0; i < e.results.length; i++) {
+        const transcript = e.results[i][0].transcript;
+        if (e.results[i].isFinal) finalText += transcript + " ";
+        else interimText += transcript;
+      }
+      answerBox.value = (baseAnswerText + " " + finalText + interimText).trim();
+      document.getElementById("charCount").textContent = answerBox.value.length + " karakter";
+    });
+
+    recognition.addEventListener("error", (e) => {
+      isRecording = false;
+      micBtn.classList.remove("recording");
+      if (e.error === "not-allowed" || e.error === "service-not-allowed") {
+        showRoomError("Mikrofon izni verilmedi. Tarayici ayarlarindan mikrofona izin ver.");
+      } else if (e.error !== "no-speech" && e.error !== "aborted") {
+        showRoomError("Sesli giris hatasi: " + e.error);
+      }
+    });
+
+    recognition.addEventListener("end", () => {
+      isRecording = false;
+      micBtn.classList.remove("recording");
+    });
+  }
+
+  micBtn.addEventListener("click", () => {
+    if (!recognition) {
+      showRoomError("Tarayicin sesli girisi desteklemiyor. Chrome ya da Edge kullanarak deneyebilirsin.");
+      return;
+    }
+    hideRoomError();
+    if (isRecording) {
+      recognition.stop();
+      isRecording = false;
+      micBtn.classList.remove("recording");
+      return;
+    }
+    if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+    baseAnswerText = answerBox.value.trim();
+    try {
+      recognition.start();
+      isRecording = true;
+      micBtn.classList.add("recording");
+    } catch (e) {
+      showRoomError("Mikrofon baslatilamadi, tekrar dene.");
+    }
+  });
 
   async function fetchWithTimeout(url, options = {}, timeoutMs = 45000) {
     const controller = new AbortController();
@@ -172,6 +238,29 @@
   }
   function hideRoomError() {
     document.getElementById("roomError").classList.add("hidden");
+  }
+
+  // ---------- AI sorulari gercekten sesli okusun (Text-to-Speech) ----------
+  let _trVoice = null;
+  function _pickTrVoice() {
+    if (!("speechSynthesis" in window)) return;
+    const voices = window.speechSynthesis.getVoices();
+    _trVoice = voices.find(v => v.lang && v.lang.toLowerCase().startsWith("tr")) || null;
+  }
+  if ("speechSynthesis" in window) {
+    _pickTrVoice();
+    window.speechSynthesis.addEventListener("voiceschanged", _pickTrVoice);
+  }
+
+  function speakQuestion(text) {
+    if (sessionStorage.getItem("ip_voice_mode") === "off") return;
+    if (!("speechSynthesis" in window) || !text) return;
+    window.speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = "tr-TR";
+    if (_trVoice) utter.voice = _trVoice;
+    utter.rate = 1;
+    window.speechSynthesis.speak(utter);
   }
 
   function addMsg(who, text, scoreBadge) {
@@ -212,6 +301,7 @@
     document.getElementById("qEyebrow").textContent = `Soru ${q.question_number}`;
     document.getElementById("qText").textContent = q.question;
     document.getElementById("statusLine").innerHTML = '<span class="speaking-dot"></span> AI konusuyor...';
+    speakQuestion(q.question);
     answerBox.value = "";
     answerBox.disabled = false;
     answerBox.classList.remove("hidden");
