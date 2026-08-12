@@ -71,7 +71,7 @@
         const data = await r.json().catch(() => ({}));
         throw new Error(data.detail || "Kayit basarisiz");
       }
-      window.location.href = "verify-email.html";
+      window.location.href = "dashboard.html";
     } catch (e) {
       showError(e.message);
       btn.disabled = false;

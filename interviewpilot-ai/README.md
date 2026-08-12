@@ -9,7 +9,7 @@ cikarir. Google Gemini API kullanir.
 
 - **Coklu kullanici sistemi** — herkes kendi e-posta/sifresiyle kayit olur, giris yapar;
   her kullanicinin CV'si, mulakat gecmisi, istatistikleri ve profili tamamen izole tutulur
-- **Sifremi Unuttum / E-posta Dogrulama** — gercek e-posta gonderimiyle (SMTP) calisir:
+- **Sifremi Unuttum / E-posta Dogrulama** — gercek e-posta gonderimiyle (Resend ya da SMTP) calisir:
   sifre sifirlama linki ve 6 haneli dogrulama kodu gercekten mail olarak gonderilir
 - **Sirket Bazli Mulakat Modu** — 28 sirket (Google, Amazon, Meta, ASELSAN, Turkcell, ...)
   icin farkli odak alani ve mulakat tarzi baglami

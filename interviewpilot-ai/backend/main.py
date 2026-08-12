@@ -343,15 +343,6 @@ def register(payload: RegisterIn, response: FastAPIResponse):
     except ValueError as e:
         raise HTTPException(400, str(e))
     _set_session_cookie(response, user["id"])
-    # E-posta dogrulama kodunu gonder; SMTP ayarlanmamissa sessizce gec
-    # (kayit basarisiz olmasin, kullanici sonra "Tekrar gonder" ile deneyebilir).
-    try:
-        code = verification_store.create_verification_code(user["id"])
-        mailer.send_verification_code(user["email"], code)
-    except mailer.MailerNotConfigured:
-        pass
-    except Exception as e:
-        print("[UYARI] Dogrulama e-postasi gonderilemedi:", repr(e))
     return user_store.public_user(user)
 
 

@@ -66,14 +66,6 @@
 
     <div class="page-body">
 
-      <div class="card hidden" id="verifyBanner" style="margin-bottom:16px; background:var(--warning-soft); display:flex; align-items:center; gap:12px; justify-content:space-between;">
-        <div class="flex items-center gap-12">
-          <i data-lucide="mail-warning" style="width:20px; color:var(--warning);"></i>
-          <span style="font-size:13.5px;">E-postan henuz dogrulanmadi.</span>
-        </div>
-        <a href="verify-email.html" class="btn btn-secondary btn-sm">Dogrula</a>
-      </div>
-
       <div class="empty-state hidden" id="emptyState">
         <div class="icon-box"><i data-lucide="sparkles"></i></div>
         <div class="h4">Henuz bir mulakat yapmadin</div>
@@ -177,7 +169,6 @@
     document.getElementById("sidebarName").textContent = user.name || user.email;
     document.getElementById("sidebarSub").textContent = user.email || "";
     document.getElementById("sidebarAvatar").textContent = initials(user.name || user.email);
-    document.getElementById("verifyBanner").classList.toggle("hidden", !!user.email_verified);
   }
   if (window.ipCurrentUser) applyUser(window.ipCurrentUser);
   document.addEventListener("ip-auth-ready", (e) => applyUser(e.detail));

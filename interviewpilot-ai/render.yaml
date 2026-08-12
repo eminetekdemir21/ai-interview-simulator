@@ -14,3 +14,7 @@ services:
         value: "true"
       - key: PYTHON_VERSION
         value: "3.11.9"
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM
+        value: onboarding@resend.dev
